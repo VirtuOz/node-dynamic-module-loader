@@ -13,3 +13,12 @@ results
 
 node_modules
 npm-debug.log
+
+.idea/workspace.xml
+.idea/libraries
+
+target
+
+.DS_Store
+
+xunit.xml
