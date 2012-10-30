@@ -1,0 +1,9 @@
+{
+    "name":"test-dynamic-module",
+    "version":"0.0.1",
+    "main":"./index.js",
+
+    "dependencies":{
+        "futures":"2.1.0"
+    }
+}

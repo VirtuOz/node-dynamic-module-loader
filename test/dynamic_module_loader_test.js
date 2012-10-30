@@ -20,8 +20,12 @@
  * @author Kevan Dunsmore
  * @created 2012/08/26
  */
+// We always want long stack traces here.
+require('longjohn');
+
 var Future = require('futures').future;
 var expect = require('chai').expect;
+var assert = require('chai').assert;
 var fs = require('fs');
 var util = require('util');
 var wrench = require('wrench');
@@ -32,13 +36,14 @@ var tar = require('tar');
 var fstream = require('fstream');
 var path = require('path');
 var exec = require('child_process').exec;
+var extend = require('xtend');
 
-var VNodeLib = require('../../vnodelib/lib/vnodelib');
-var DynamicModuleLoader = VNodeLib.load('dynamic-module-loader').DynamicModuleLoader;
-var _ = VNodeLib.load('underscore-extensions');
+var DynamicModuleLoader = require('../index').DynamicModuleLoader;
+var dmlConfig = require('../index').config;
+var _ = require('underscore');
 _.str = require('underscore.string');
 
-var LockManager = VNodeLib.load('cluster-lock').LockManager;
+var LockManager = require('hurt-locker').LockManager;
 
 var logger = require('winston');
 
@@ -68,17 +73,18 @@ describe('DynamicModuleLoaderTest', function ()
                    {
                        wrench.rmdirSyncRecursive(tmpDir, true);
                    }
+
+                   lockManager = new LockManager({lockDir: path.join(tmpDir, "/locks")});
+
                    // Create the module loader to be tested.
-                   dynamicModuleLoader = new DynamicModuleLoader();
+                   dynamicModuleLoader = new DynamicModuleLoader(
+                       {
+                           lockManager:lockManager,
+                           downloadDir: path.join(tmpDir + "/downloads"),
+                           moduleInstallationDir:path.join(tmpDir + "/installed-modules"),
+                           modulePackageServerUrl:"http://gattacus"
+                       });
 
-                   // Create the various directories we'll need.
-                   dynamicModuleLoader.setDownloadDir(path.join(tmpDir + "/downloads"));
-                   dynamicModuleLoader.setModuleInstallationDir(path.join(tmpDir + "/installed-modules"));
-                   dynamicModuleLoader.setModulePackageServerUrl("http://gattacus");
-
-                   lockManager = new LockManager();
-                   lockManager.setLockDir(path.join(tmpDir, "/locks"));
-                   dynamicModuleLoader.setLockManager(lockManager);
 
                    wrench.mkdirSyncRecursive(tmpDir);
 
@@ -125,24 +131,45 @@ describe('DynamicModuleLoaderTest', function ()
                    }
                });
 
-    describe('accessors and mutators', function ()
+
+    describe('initialization', function ()
     {
-        it('should get and set the lock location', function (done)
+        it('should initialize with default settings when no settings supplied', function (done)
         {
-            expect(dynamicModuleLoader.getLockDir()).to.equal(lockManager.getLockDir());
-            expect(dynamicModuleLoader.getLockDir()).to.equal(path.join(tmpDir, "/locks"));
+            var lm = new DynamicModuleLoader();
 
-            dynamicModuleLoader.setLockDir('wibble');
-            expect(dynamicModuleLoader.getLockDir()).to.equal(lockManager.getLockDir());
-            expect(dynamicModuleLoader.getLockDir()).to.equal('wibble');
+            assert.isDefined(lm.settings.lockManager, "lock manager setting");
 
-            dynamicModuleLoader.setLockDir('giblets');
-            expect(dynamicModuleLoader.getLockDir()).to.equal(lockManager.getLockDir());
-            expect(dynamicModuleLoader.getLockDir()).to.equal('giblets');
+            // The DML adds the lock manager to its settings, so we add it to the default values we create before
+            // asserting equality.
+            var expectedSettings = extend(dmlConfig.createDefaultConfig(), {lockManager:lm.settings.lockManager});
+            assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
+            done();
+        });
 
+        it('should initialize with settings supplied, overriding default ones and adding new ones', function (done)
+        {
+            var settings = {wibble: 'drumsticks', downloadDir: 'giblets', lockManager: new LockManager()};
+            var lm = new DynamicModuleLoader(settings);
+            var expectedSettings = extend(lm.settings, settings);
+            assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
+            done();
+        });
+
+
+        it('should initialize with settings supplied, overriding default ones and adding new ones', function (done)
+        {
+            var settings = {wibble: 'drumsticks', downloadDir: 'giblets'};
+            var lm = new DynamicModuleLoader(function()
+                                     {
+                                         return settings;
+                                     });
+            var expectedSettings = extend(lm.settings, settings);
+            assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
         });
     });
+
 
     describe('__downloadFile', function ()
     {
@@ -256,13 +283,13 @@ describe('DynamicModuleLoaderTest', function ()
     {
         it('should decompress the zip file', function (done)
         {
-            var targetFilePath = path.join(dynamicModuleLoader.getModuleInstallationDir(), dynamicModuleName);
+            var targetFilePath = path.join(dynamicModuleLoader.settings.moduleInstallationDir, dynamicModuleName);
             var result = dynamicModuleLoader.__decompressZipFile(dynamicModuleZipFilePath,
-                                                                 dynamicModuleLoader.getModuleInstallationDir());
+                                                                 dynamicModuleLoader.settings.moduleInstallationDir);
             result.when(function (err, decompressedFilePath)
                         {
                             expect(err).to.equal(undefined);
-                            expect(decompressedFilePath).to.equal(dynamicModuleLoader.getModuleInstallationDir());
+                            expect(decompressedFilePath).to.equal(dynamicModuleLoader.settings.moduleInstallationDir);
                             expect(fs.existsSync(targetFilePath), 'target file existence').to.equal(true);
 
                             done();
@@ -273,7 +300,7 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var targetFilePath = path.join(tmpDir, "unzipped");
             var result = dynamicModuleLoader.__decompressZipFile("does-not-exist.zip",
-                                                                 dynamicModuleLoader.getModuleInstallationDir());
+                                                                 dynamicModuleLoader.settings.moduleInstallationDir);
             result.when(function (err, decompressedFilePath)
                         {
                             expect(err).to.not.equal(undefined);
@@ -378,7 +405,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should download, uncompress and return a valid module from a zip source with embedded root dir', function (done)
         {
             // Override the default extension to be .zip.
-            dynamicModuleLoader.setDefaultRemoteServerPackageFileExtension('.zip');
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
             runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done);
@@ -387,7 +414,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should download, uncompress and return a valid module from a zip source with no embedded root dir - XXX', function (done)
         {
             // Override the default extension to be .zip.
-            dynamicModuleLoader.setDefaultRemoteServerPackageFileExtension('.zip');
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
             runTest(expectDownloadRequest, '/test-dynamic-module-no-root-dir.zip', dynamicModuleZipFileNoRootDirPath, undefined, true, undefined, expectModuleInstallationDirRename, done);
@@ -396,7 +423,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should download, uncompress and return a valid module from a .tar.gz source when an overriding extension is specified', function (done)
         {
             // Override the default extension to be .zip.
-            dynamicModuleLoader.setDefaultRemoteServerPackageFileExtension('.zip');
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
             runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, ".tar.gz", true, undefined, expectModuleInstallationDirRename, done);
@@ -405,7 +432,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should download, uncompress and return a valid module from a .zip source when an overriding extension is specified', function (done)
         {
             // Override the default extension to be .tar.gz.
-            dynamicModuleLoader.setDefaultRemoteServerPackageFileExtension('.tar.gz');
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .zip module specifying the extension explicitly in the load call.
             runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, '.zip', true, undefined, doNotExpectModuleInstallationDirRename, done);
@@ -418,7 +445,7 @@ describe('DynamicModuleLoaderTest', function ()
 
         it('should skip npm installation', function (done)
         {
-            dynamicModuleLoader.setNpmSkipInstall(true);
+            dynamicModuleLoader.settings.npmSkipInstall = true;
             runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, false, undefined, doNotExpectModuleInstallationDirRename, ensureNodeModulesDirectoryNotPresent);
 
             function ensureNodeModulesDirectoryNotPresent()
@@ -559,27 +586,27 @@ describe('DynamicModuleLoaderTest', function ()
 
         function expectDownloadRequest(downloadTarget, packagePath)
         {
-            return nock(dynamicModuleLoader.getModulePackageServerUrl())
+            return nock(dynamicModuleLoader.settings.modulePackageServerUrl)
                 .get(downloadTarget)
                 .replyWithFile(200, packagePath);
         }
 
         function doNotExpectModuleInstallationDirToBePresent(targetModuleName)
         {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.getModuleInstallationDir());
+            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
             expect(fileNames.length, 'installation dir').to.equal(0);
         }
 
         function doNotExpectModuleInstallationDirRename(targetModuleName)
         {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.getModuleInstallationDir());
+            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
             expect(fileNames.length, 'installation dir').to.equal(1);
             expect(fileNames[0], 'installation dir name ').to.equal(targetModuleName);
         }
 
         function expectModuleInstallationDirRename(targetModuleName)
         {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.getModuleInstallationDir());
+            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
             expect(fileNames.length, 'renamed installation dir').to.equal(1);
             expect(_.str.startsWith(fileNames[0], targetModuleName + "-ERROR-"),
                    'renamed installation dir name was ' + fileNames[0])
@@ -602,7 +629,7 @@ describe('DynamicModuleLoaderTest', function ()
                 {
                     eventsCalled.moduleDownloaded = true;
                     expect(moduleName, "moduleName").to.equal(targetModuleName);
-                    expect(downloadedFile, "downloadedFile").to.equal(path.join(dynamicModuleLoader.getDownloadDir(), compressedFileName));
+                    expect(downloadedFile, "downloadedFile").to.equal(path.join(dynamicModuleLoader.settings.downloadDir, compressedFileName));
 
                     assertModuleLockStatus(true);
 
@@ -622,7 +649,7 @@ describe('DynamicModuleLoaderTest', function ()
                     eventsCalled.moduleInstalled = true;
                     expect(moduleName, "moduleName").to.equal(targetModuleName);
 
-                    var expectedLocation1 = path.join(dynamicModuleLoader.getModuleInstallationDir(), targetModuleName);
+                    var expectedLocation1 = path.join(dynamicModuleLoader.settings.moduleInstallationDir, targetModuleName);
                     var expectedLocation2 = path.join(expectedLocation1, targetModuleName);
 
                     expect(installationLocation === expectedLocation1 || installationLocation === expectedLocation2,
@@ -716,7 +743,7 @@ describe('DynamicModuleLoaderTest', function ()
             function assertModuleLockStatus(expectedStatus)
             {
                 // Module should be locked at this point.
-                expect(fs.existsSync(path.join(lockManager.getLockDir(), targetModuleName + '.lock')), 'lock file').to.equal(expectedStatus);
+                expect(fs.existsSync(path.join(lockManager.settings.lockDir, targetModuleName + '.lock')), 'lock file').to.equal(expectedStatus);
             }
         }
     });
