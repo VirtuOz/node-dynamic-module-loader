@@ -1,15 +1,20 @@
 {
     "name":"dynamic-module-loader",
     "version":"0.0.1",
+    "homepage":"https://github.com/VirtuOz/node-dynamic-module-loader",
+    "author":{
+    		"name":"Kevan Dunsmore",
+    		"email":"kdunsmore@virtuoz.com"
+    	},
     "scripts":{
         "test":"node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter spec",
         "test-jenkins":"node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter xunit-file",
         "clean":"rm -rf target; rm -f xunit.xml"
     },
     "dependencies":{
-        "error-handling":"git+ssh://git@github.com:VirtuOz/node-error-handling.git#1.0.0+4",
-        "hurt-locker":"git+ssh://git@github.com:VirtuOz/node-hurt-locker.git#1.0.0+4",
-        "callback-utils":"git+ssh://git@github.com:VirtuOz/node-callback-utils.git#1.0.0+3",
+        "error-handling":"1.0.0",
+        "hurt-locker":"1.0.0",
+        "callback-utils":"1.0.0",
         "node-fs":"0.1.4",
         "underscore":"1.3.3",
         "underscore.string":"2.2.0rc",

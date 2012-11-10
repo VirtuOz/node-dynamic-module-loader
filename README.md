@@ -83,12 +83,11 @@ Where _http://the-server_ is a configuration value and _module-name_ is the name
 How To Use
 ----------
 
-OK, enough blabbling.  Here's how you create and configure a DynamicModuleLoader:
+OK, enough blabbing.  Here's how you create and configure a DynamicModuleLoader:
 
     // Require all of the needful.
-    var VNodeLib = require('vnodelib');
-    var LockManager = VNodeLib.load('cluster-lock').LockManager;
-    var DynamicModuleLoader = VNodeLib.load('dynamic-module-loader').DynamicModuleLoader;
+    var LockManager = require('hurt-locker').LockManager;
+    var DynamicModuleLoader = require('dynamic-module-loader').DynamicModuleLoader;
 
     // Create our loader.
     var dynamicModuleLoader = new DynamicModuleLoader();
