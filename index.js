@@ -13,5 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-module.exports.DynamicModuleLoader = require('./lib/dynamic_module_loader');
-module.exports.config = require('./lib/dml_config');
+var libDir = process.env.TEST_COV_DIR ? process.env.TEST_COV_DIR : './lib';
+module.exports.DynamicModuleLoader = require(libDir + '/dynamic_module_loader');
+module.exports.config = require(libDir + '/dml_config');

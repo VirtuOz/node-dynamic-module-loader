@@ -204,15 +204,15 @@ By default, _DynamicModuleLoader_ assumes that _npm_ and _unzip_ paths are _/usr
 respectively.
 
 
-Verbosity
----------
+Customizing NPM Options
+-----------------------
 
-You can set NPM to perform a verbose install like this:
+You can customize the NPM options.  For example, you can set NPM to perform a verbose install:
 
-    var dynamicModuleLoader = new DynamicModuleLoader();
+    var dynamicModuleLoader = new DynamicModuleLoader({
+        npmOptions: ['--production', '--verbose']
+    });
     dynamicModuleLoader.setNpmInstallVerbose(true);
-
-By default this flag is set to _false_.
 
 
 Skipping Installation
@@ -293,7 +293,8 @@ Here are the properties published by _DynamicModuleLoader_ along with their resp
     moduleInstallationDir                       path.normalize('./installed-modules')
     modulePackageServerUrl                      http://localhost
     npmExecutablePath                           /usr/local/bin/npm
-    npmInstallVerbose                           false
+    npmOptions                                  An array of options supplied to npm.  By default contains ['--production'].
+                                                See NPM options https://npmjs.org/doc/.
     npmSkipInstall                              false
     lockManager                                 new lock manager, lock dir set to path.normalize('./locks')
     downloadLockTimeout                         30000
