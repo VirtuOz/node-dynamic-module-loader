@@ -1,6 +1,6 @@
 {
     "name":"dynamic-module-loader",
-    "version":"1.0.0",
+    "version":"1.0.1",
     "homepage":"https://github.com/VirtuOz/node-dynamic-module-loader",
     "author":{
     		"name":"Kevan Dunsmore",
@@ -8,8 +8,8 @@
     	},
     "scripts":{
         "test":"node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter spec",
-        "test-jenkins":"node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter xunit-file",
-        "clean":"rm -rf target; rm -f xunit.xml"
+        "test-coverage":"scripts/runTestWithCoverage.sh",
+        "clean":"rm -rf target"
     },
     "dependencies":{
         "error-handling":"1.0.0",
@@ -31,8 +31,8 @@
         "chai":"1.1.1",
         "nock":"0.13.3",
         "wrench":"1.3.9",
-        "xunit-file":"0.0.1",
-        "longjohn":"0.0.3"
+        "longjohn":"0.0.3",
+        "xunit-html-cov": "git+ssh://git@github.com:kdunsmore/xunit-html-cov.git#fix-broken-JSONCov-dependency"
     },
     "main":"./index.js"
 }
