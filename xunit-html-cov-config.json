@@ -1,0 +1,4 @@
+{
+    "html" : "target/coverage.html",
+    "xml" : "target/coverage.xml"
+}
