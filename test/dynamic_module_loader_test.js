@@ -578,9 +578,9 @@ describe('DynamicModuleLoaderTest', function ()
         it('should load then evict and not keep anything in cache', function (done)
         {
             var testModuleName = 'test-dynamic-module';
-            var beforeMemory = process.memoryUsage();
+            //var beforeMemory = process.memoryUsage();
             runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest);
-            var afterLoadedMemory = process.memoryUsage();
+            //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest()
             {
@@ -600,10 +600,10 @@ describe('DynamicModuleLoaderTest', function ()
                     expect(require.cache[path.resolve(testModuleName)]).to.equal(undefined);
 
                     //Check memory usage
-                    var afterMemory = process.memoryUsage();
-                    console.log("Before load : " + util.inspect(beforeMemory));
-                    console.log("After load : " + util.inspect(afterLoadedMemory))
-                    console.log("After evict : " + util.inspect(afterMemory));
+                    //var afterMemory = process.memoryUsage();
+//                    console.log("Before load : " + util.inspect(beforeMemory));
+//                    console.log("After load : " + util.inspect(afterLoadedMemory))
+//                    console.log("After evict : " + util.inspect(afterMemory));
 
                     // To test, we register event listeners that will cause an error when events are fired we don't expect.
                     // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
