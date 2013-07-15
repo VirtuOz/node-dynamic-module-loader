@@ -818,5 +818,4 @@ describe('DynamicModuleLoaderTest', function ()
             'renamed installation dir name was ' + fileNames[0])
             .to.equal(true);
     }
-
 });
