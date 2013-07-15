@@ -23,7 +23,6 @@
 // We always want long stack traces here.
 require('longjohn');
 
-var Future = require('futures').future;
 var expect = require('chai').expect;
 var assert = require('chai').assert;
 var fs = require('fs');
@@ -31,7 +30,6 @@ var util = require('util');
 var wrench = require('wrench');
 var nock = require('nock');
 var zlib = require('zlib');
-var os = require('os');
 var tar = require('tar');
 var fstream = require('fstream');
 var path = require('path');
@@ -44,8 +42,6 @@ var _ = require('underscore');
 _.str = require('underscore.string');
 
 var LockManager = require('hurt-locker').LockManager;
-
-var logger = require('winston');
 
 describe('DynamicModuleLoaderTest', function ()
 {
@@ -205,7 +201,7 @@ describe('DynamicModuleLoaderTest', function ()
                             expect(filePath, 'file path').to.equal(undefined);
 
                             expect(err.statusCode, 'error status code').to.equal(undefined);
-                            expect(err.message, 'error message').to.equal("getaddrinfo ENOENT");
+                            expect(_.str.startsWith(err.message, "getaddrinfo ")).to.be.true;
                             expect(fs.existsSync(targetFile), 'target file existence').to.equal(false);
 
                             done();
@@ -576,175 +572,250 @@ describe('DynamicModuleLoaderTest', function ()
                 runTest(doNotExpectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, done)
             }
         });
+    });
 
-        function doNotExpectDownloadRequest()
+    describe('evict', function () {
+        it('should load then evict and not keep anything in cache', function (done)
         {
-            return { done:function ()
+            var testModuleName = 'test-dynamic-module';
+            //var beforeMemory = process.memoryUsage();
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest);
+            //var afterLoadedMemory = process.memoryUsage();
+
+            function runSecondTest()
             {
-            } };
-        }
-
-        function expectDownloadRequest(downloadTarget, packagePath)
-        {
-            return nock(dynamicModuleLoader.settings.modulePackageServerUrl)
-                .get(downloadTarget)
-                .replyWithFile(200, packagePath);
-        }
-
-        function doNotExpectModuleInstallationDirToBePresent(targetModuleName)
-        {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
-            expect(fileNames.length, 'installation dir').to.equal(0);
-        }
-
-        function doNotExpectModuleInstallationDirRename(targetModuleName)
-        {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
-            expect(fileNames.length, 'installation dir').to.equal(1);
-            expect(fileNames[0], 'installation dir name ').to.equal(targetModuleName);
-        }
-
-        function expectModuleInstallationDirRename(targetModuleName)
-        {
-            var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
-            expect(fileNames.length, 'renamed installation dir').to.equal(1);
-            expect(_.str.startsWith(fileNames[0], targetModuleName + "-ERROR-"),
-                   'renamed installation dir name was ' + fileNames[0])
-                .to.equal(true);
-        }
-
-        function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath, explicitLoadMethodExtension, shouldRegisterListeners, expectedErrorMessage, expectModuleInstallationDirRename, done)
-        {
-            // Mock out the call to retrieve the binary and return the one we packaged up in the setup method.
-            var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath);
-
-            var compressedFileName = expectedDownloadTarget.substring(1);
-            var targetModuleName = compressedFileName.replace(".zip", "").replace(".tar.gz", "");
-
-            // Set up event listeners to test that events are fired correctly.
-            var eventsCalled = {};
-            if (shouldRegisterListeners)
-            {
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+                var eventEvicted = [];
+                // Register the event listener that will halt proceedings.
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleEvicted, function (moduleName)
                 {
-                    eventsCalled.moduleDownloaded = true;
-                    expect(moduleName, "moduleName").to.equal(targetModuleName);
-                    expect(downloadedFile, "downloadedFile").to.equal(path.join(dynamicModuleLoader.settings.downloadDir, compressedFileName));
-
-                    assertModuleLockStatus(true);
-
-                    proceed();
+                    eventEvicted.push(moduleName);
                 });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, extractLocation, proceed)
-                {
-                    eventsCalled.moduleExtracted = true;
-                    expect(moduleName, "moduleName").to.equal(targetModuleName);
 
-                    assertModuleLockStatus(true);
+                // Now "unload" it from the cache.
+                var next = dynamicModuleLoader.evict(testModuleName);
 
-                    proceed();
-                });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, installationLocation, proceed)
-                {
-                    eventsCalled.moduleInstalled = true;
-                    expect(moduleName, "moduleName").to.equal(targetModuleName);
+                next.when(function (){
+                    expect(eventEvicted.length).to.equal(1);
+                    expect(eventEvicted[0]).to.equal(testModuleName)
+                    expect(require.cache[path.resolve(testModuleName)]).to.equal(undefined);
 
-                    var expectedLocation1 = path.join(dynamicModuleLoader.settings.moduleInstallationDir, targetModuleName);
-                    var expectedLocation2 = path.join(expectedLocation1, targetModuleName);
+                    //Check memory usage
+                    //var afterMemory = process.memoryUsage();
+//                    console.log("Before load : " + util.inspect(beforeMemory));
+//                    console.log("After load : " + util.inspect(afterLoadedMemory))
+//                    console.log("After evict : " + util.inspect(afterMemory));
 
-                    expect(installationLocation === expectedLocation1 || installationLocation === expectedLocation2,
-                           "installationLocation")
-                        .to.equal(true);
+                    // To test, we register event listeners that will cause an error when events are fired we don't expect.
+                    // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
+                    // there's a problem.
+                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+                    {
+                        proceed(new Error('moduleDownloaded event not expected'));
+                    });
+                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile, proceed)
+                    {
+                        proceed(new Error('moduleExtracted event not expected'));
+                    });
+                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
+                    {
+                        proceed(new Error('moduleInstalled event not expected'));
+                    });
 
-                    assertModuleLockStatus(true);
+                    // We expect this listener to be called.
+                    var eventsCalled = {};
+                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
+                    {
+                        eventsCalled.moduleLoaded = true;
+                        expect(moduleName, "moduleName").to.equal(testModuleName);
+                        proceed();
+                    });
 
-                    proceed();
-                });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
-                {
-                    eventsCalled.moduleLoaded = true;
-                    expect(moduleName, "moduleName").to.equal(targetModuleName);
+                    // Run the test again.
+                    runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, validate);
 
-                    assertModuleLockStatus(true);
-
-                    proceed();
+                    function validate(){
+                        expect(eventsCalled.moduleLoaded).to.equal(true);
+                        done();
+                    }
                 });
             }
 
-            // Now kick off the module.
-            var downloadedModule;
-            var result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
-            result.when(function (err, module)
-                        {
-                            scope.done();
+        });
+    });
 
-                            if (expectedErrorMessage)
-                            {
-                                // We expect an error.  Make sure it's the right one.
-                                expect(err.message, 'error message').to.equal(expectedErrorMessage);
+    function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath, explicitLoadMethodExtension,
+                     shouldRegisterListeners, expectedErrorMessage, expectModuleInstallationDirRename, done)
+    {
+        // Mock out the call to retrieve the binary and return the one we packaged up in the setup method.
+        var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath);
 
-                                // Make sure we have a renamed module installation directory.
-                                expectModuleInstallationDirRename(targetModuleName);
+        var compressedFileName = expectedDownloadTarget.substring(1);
+        var targetModuleName = compressedFileName.replace(".zip", "").replace(".tar.gz", "");
 
-                                done();
-                            }
-                            else
-                            {
-                                // No error expected.  Make sure everything functioned correctly.
-                                expect(err, 'error object').to.equal(undefined);
-                                expect(module, 'dynamically loaded module').to.not.equal(undefined);
-
-                                expect(module.name, 'module name').to.equal("This Is My Name");
-
-                                var future = module.hello();
-                                expect(future, 'dynamic module future').to.not.equal(undefined);
-
-                                future.when(function (err, result)
-                                            {
-                                                expect(err, 'dynamic module error object').to.equal(undefined);
-                                                expect(result, 'result of dynamic module future call').to.equal("hello world");
-
-                                                downloadedModule = module;
-
-                                                loadAgain();
-                                            });
-                            }
-                        });
-
-            function loadAgain()
+        // Set up event listeners to test that events are fired correctly.
+        var eventsCalled = {
+            moduleDownloaded: 0,
+            moduleExtracted: 0,
+            moduleInstalled : 0,
+            moduleLoaded: 0
+        };
+        if (shouldRegisterListeners)
+        {
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
             {
-                // Now we load the same module again.  We should get the same result back as before (the exact same
-                // module) but this time we shouldn't be downloading it.  We should get it from the previously-downloaded
-                // cache.
-                result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
-                result.when(function (err, module)
-                            {
-                                expect(err, 'error object').to.equal(undefined);
-                                expect(module).to.equal(downloadedModule);
+                eventsCalled.moduleDownloaded += 1;
+                expect(moduleName, "moduleName").to.equal(targetModuleName);
+                expect(downloadedFile, "downloadedFile").to.equal(path.join(dynamicModuleLoader.settings.downloadDir, compressedFileName));
 
-                                assertEventsCalled();
-                            });
-            }
+                assertModuleLockStatus(true);
 
-            function assertEventsCalled()
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, extractLocation, proceed)
             {
-                if (shouldRegisterListeners)
-                {
-                    expect(eventsCalled.moduleDownloaded, "moduleDownloaded event called").to.equal(true);
-                    expect(eventsCalled.moduleExtracted, "moduleExtracted event called").to.equal(true);
-                    expect(eventsCalled.moduleInstalled, "moduleInstalled event called").to.equal(true);
-                    expect(eventsCalled.moduleLoaded, "moduleLoaded event called").to.equal(true);
-                }
+                eventsCalled.moduleExtracted += 1;
+                expect(moduleName, "moduleName").to.equal(targetModuleName);
 
-                assertModuleLockStatus(false);
+                assertModuleLockStatus(true);
+
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, installationLocation, proceed)
+            {
+                eventsCalled.moduleInstalled += 1;
+                expect(moduleName, "moduleName").to.equal(targetModuleName);
+
+                var expectedLocation1 = path.join(dynamicModuleLoader.settings.moduleInstallationDir, targetModuleName);
+                var expectedLocation2 = path.join(expectedLocation1, targetModuleName);
+
+                expect(installationLocation === expectedLocation1 || installationLocation === expectedLocation2,
+                    "installationLocation")
+                    .to.equal(true);
+
+                assertModuleLockStatus(true);
+
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
+            {
+                eventsCalled.moduleLoaded += 1;
+                expect(moduleName, "moduleName").to.equal(targetModuleName);
+
+                assertModuleLockStatus(true);
+
+                proceed();
+            });
+        }
+
+        // Now kick off the module.
+        var downloadedModule;
+        var result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
+        result.when(function (err, module)
+        {
+            scope.done();
+
+            if (expectedErrorMessage)
+            {
+                // We expect an error.  Make sure it's the right one.
+                expect(err.message, 'error message').to.equal(expectedErrorMessage);
+
+                // Make sure we have a renamed module installation directory.
+                expectModuleInstallationDirRename(targetModuleName);
+
                 done();
             }
-
-            function assertModuleLockStatus(expectedStatus)
+            else
             {
-                // Module should be locked at this point.
-                expect(fs.existsSync(path.join(lockManager.settings.lockDir, targetModuleName + '.lock')), 'lock file').to.equal(expectedStatus);
+                // No error expected.  Make sure everything functioned correctly.
+                expect(err, 'error object').to.equal(undefined);
+                expect(module, 'dynamically loaded module').to.not.equal(undefined);
+
+                expect(module.name, 'module name').to.equal("This Is My Name");
+
+                var future = module.hello();
+                expect(future, 'dynamic module future').to.not.equal(undefined);
+
+                future.when(function (err, result)
+                {
+                    expect(err, 'dynamic module error object').to.equal(undefined);
+                    expect(result, 'result of dynamic module future call').to.equal("hello world");
+
+                    downloadedModule = module;
+
+                    loadAgain();
+                });
             }
+        });
+
+        function loadAgain()
+        {
+            // Now we load the same module again.  We should get the same result back as before (the exact same
+            // module) but this time we shouldn't be downloading it.  We should get it from the previously-downloaded
+            // cache.
+            result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
+            result.when(function (err, module)
+            {
+                expect(err, 'error object').to.equal(undefined);
+                expect(module).to.equal(downloadedModule);
+
+                assertEventsCalled();
+            });
         }
-    });
+
+        function assertEventsCalled()
+        {
+            if (shouldRegisterListeners)
+            {
+                expect(eventsCalled.moduleDownloaded, "moduleDownloaded event called").to.equal(1);
+                expect(eventsCalled.moduleExtracted, "moduleExtracted event called").to.equal(1);
+                expect(eventsCalled.moduleInstalled, "moduleInstalled event called").to.equal(1);
+                expect(eventsCalled.moduleLoaded, "moduleLoaded event called").to.equal(1);
+            }
+
+            assertModuleLockStatus(false);
+            done();
+        }
+
+        function assertModuleLockStatus(expectedStatus)
+        {
+            // Module should be locked at this point.
+            expect(fs.existsSync(path.join(lockManager.settings.lockDir, targetModuleName + '.lock')), 'lock file').to.equal(expectedStatus);
+        }
+    }
+
+    function doNotExpectDownloadRequest()
+    {
+        return { done:function ()
+        {
+        } };
+    }
+
+    function expectDownloadRequest(downloadTarget, packagePath)
+    {
+        return nock(dynamicModuleLoader.settings.modulePackageServerUrl)
+            .get(downloadTarget)
+            .replyWithFile(200, packagePath);
+    }
+
+    function doNotExpectModuleInstallationDirToBePresent(targetModuleName)
+    {
+        var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
+        expect(fileNames.length, 'installation dir').to.equal(0);
+    }
+
+    function doNotExpectModuleInstallationDirRename(targetModuleName)
+    {
+        var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
+        expect(fileNames.length, 'installation dir').to.equal(1);
+        expect(fileNames[0], 'installation dir name ').to.equal(targetModuleName);
+    }
+
+    function expectModuleInstallationDirRename(targetModuleName)
+    {
+        var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
+        expect(fileNames.length, 'renamed installation dir').to.equal(1);
+        expect(_.str.startsWith(fileNames[0], targetModuleName + "-ERROR-"),
+            'renamed installation dir name was ' + fileNames[0])
+            .to.equal(true);
+    }
 });
