@@ -282,6 +282,28 @@ The next function takes the following parameters:
 - err An error object.  Pass 'undefined' if there was no error.
 - all other parameters.
 
+Evict Function
+--------------
+
+The `evict` function that takes a package name (same one provided during the load) in parameter will evict this module
+from the cache. It means that if you're doing another dynamicLoader.load of this package, the system will have to
+reload the package from the disk instead of using the require.cache. It can be very useful for when you need to load
+lot or big packages and do not use them for long.
+
+The `evict` function returns a `future` object (same kind as the `load` function) so you can add a callback to it using
+the function `when` on the `future` object. See example below :
+
+```javascript
+
+    var moduleResult = dynamicModuleLoader.load('test-dynamic-module');
+
+    //Do some processing
+
+    dynamicModuleLoader.evict('test-dynamic-module').when(function (err, packageName) {
+        //Package 'pacakgeName' correctly evicted from the cache if there is no 'err'
+    });
+
+```
 
 All Properties and Defaults
 ---------------------------
