@@ -1,4 +1,4 @@
-dynamic-module-loader
+dynamic-module-loader [![Build Status](https://travis-ci.org/VirtuOz/node-dynamic-module-loader.png)](https://travis-ci.org/VirtuOz/node-dynamic-module-loader)
 =====================
 
 The dynamic module loader library allows code to retrieve Node modules from a web server, install them locally and serve
