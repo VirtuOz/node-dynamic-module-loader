@@ -72,15 +72,19 @@ describe('DynamicModuleLoaderTest', function ()
 
                    lockManager = new LockManager({lockDir: path.join(tmpDir, "/locks")});
 
-                   // Create the module loader to be tested.
-                   dynamicModuleLoader = new DynamicModuleLoader(
-                       {
-                           lockManager:lockManager,
-                           downloadDir: path.join(tmpDir + "/downloads"),
-                           moduleInstallationDir:path.join(tmpDir + "/installed-modules"),
-                           modulePackageServerUrl:"http://gattacus"
-                       });
+                   var config = {
+                       lockManager:lockManager,
+                       downloadDir: path.join(tmpDir + "/downloads"),
+                       moduleInstallationDir:path.join(tmpDir + "/installed-modules"),
+                       modulePackageServerUrl:"http://gattacus"
+                   };
 
+                   if (process.env.NPM_PATH){
+                      config.npmExecutablePath = process.env.NPM_PATH
+                   }
+
+                   // Create the module loader to be tested.
+                   dynamicModuleLoader = new DynamicModuleLoader(config);
 
                    wrench.mkdirSyncRecursive(tmpDir);
 
