@@ -6,6 +6,12 @@
     		"name":"Kevan Dunsmore",
     		"email":"kdunsmore@virtuoz.com"
     	},
+    "contributors":[
+        {
+            "name":"Olivier Vaussy",
+            "email":"olivier.vaussy@nuance.com"
+        }
+    ],
     "scripts":{
         "test":"node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter spec",
         "test-coverage":"scripts/runTestWithCoverage.sh",
