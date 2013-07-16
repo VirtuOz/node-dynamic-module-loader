@@ -310,18 +310,16 @@ All Properties and Defaults
 
 Here are the properties published by _DynamicModuleLoader_ along with their respective default values:
 
-    Property Name                               Default Value
-    downloadDir                                 path.normalize('./downloads')
-    moduleInstallationDir                       path.normalize('./installed-modules')
-    modulePackageServerUrl                      http://localhost
-    npmExecutablePath                           /usr/local/bin/npm
-    npmOptions                                  An array of options supplied to npm.  By default contains ['--production'].
-                                                See NPM options https://npmjs.org/doc/.
-    npmSkipInstall                              false
-    lockManager                                 new lock manager, lock dir set to path.normalize('./locks')
-    downloadLockTimeout                         30000
-    lockOwner                                   {id:'DynamicModuleLoader'}
-    defaultRemoteServerPackageFileExtension     .tar.gz
-    unzipExecutablePath                         /usr/bin/unzip
-    
-
+Property Name                              | Default Value
+-------------------------------------------|------------------------------------------------------------------------
+downloadDir                                | path.normalize('./downloads')
+moduleInstallationDir                      | path.normalize('./installed-modules')
+modulePackageServerUrl                     | http://localhost
+npmExecutablePath                          | /usr/local/bin/npm
+npmOptions                                 | An array of options supplied to npm.  By default contains ['--production']. See NPM options https://npmjs.org/doc/.
+npmSkipInstall                             | false
+lockManager                                | new lock manager, lock dir set to path.normalize('./locks')
+downloadLockTimeout                        | 30000
+lockOwner                                  | {id:'DynamicModuleLoader'}
+defaultRemoteServerPackageFileExtension    | .tar.gz
+unzipExecutablePath                        | /usr/bin/unzip
