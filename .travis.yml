@@ -1,5 +1,4 @@
 before_script:
-  - which npm
   - export NPM_PATH=`which npm`
 language: node_js
 node_js:
