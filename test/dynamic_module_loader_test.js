@@ -397,6 +397,11 @@ describe('DynamicModuleLoaderTest', function ()
 
     describe('load', function ()
     {
+        it('should download, uncompress and return a valid module from a .tar.gz source with a download path provided', function (done)
+        {
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done, "http://MyPath")
+        });
+
         it('should download, uncompress and return a valid module from a .tar.gz source', function (done)
         {
             runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done)
@@ -648,10 +653,10 @@ describe('DynamicModuleLoaderTest', function ()
     });
 
     function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath, explicitLoadMethodExtension,
-                     shouldRegisterListeners, expectedErrorMessage, expectModuleInstallationDirRename, done)
+                     shouldRegisterListeners, expectedErrorMessage, expectModuleInstallationDirRename, done, downloadPath)
     {
         // Mock out the call to retrieve the binary and return the one we packaged up in the setup method.
-        var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath);
+        var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath, downloadPath);
 
         var compressedFileName = expectedDownloadTarget.substring(1);
         var targetModuleName = compressedFileName.replace(".zip", "").replace(".tar.gz", "");
@@ -713,7 +718,11 @@ describe('DynamicModuleLoaderTest', function ()
 
         // Now kick off the module.
         var downloadedModule;
-        var result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
+        if (downloadPath) {
+            downloadPath = downloadPath + expectedDownloadTarget;
+        }
+
+        var result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension, downloadPath);
         result.when(function (err, module)
         {
             scope.done();
@@ -756,7 +765,7 @@ describe('DynamicModuleLoaderTest', function ()
             // Now we load the same module again.  We should get the same result back as before (the exact same
             // module) but this time we shouldn't be downloading it.  We should get it from the previously-downloaded
             // cache.
-            result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension);
+            result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension, downloadPath);
             result.when(function (err, module)
             {
                 expect(err, 'error object').to.equal(undefined);
@@ -794,9 +803,9 @@ describe('DynamicModuleLoaderTest', function ()
         } };
     }
 
-    function expectDownloadRequest(downloadTarget, packagePath)
+    function expectDownloadRequest(downloadTarget, packagePath, downloadPath)
     {
-        return nock(dynamicModuleLoader.settings.modulePackageServerUrl)
+        return nock(downloadPath ? downloadPath : dynamicModuleLoader.settings.modulePackageServerUrl)
             .get(downloadTarget)
             .replyWithFile(200, packagePath);
     }
