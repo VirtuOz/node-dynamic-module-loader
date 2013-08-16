@@ -6,6 +6,7 @@ lib-cov
 *.out
 *.pid
 *.gz
+*.iml
 
 pids
 logs
@@ -14,8 +15,7 @@ results
 node_modules
 npm-debug.log
 
-.idea/workspace.xml
-.idea/libraries
+.idea
 
 target
 
