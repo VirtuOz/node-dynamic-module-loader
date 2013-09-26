@@ -269,6 +269,18 @@ _DynamicModuleLoader_ is an event emitter.  Here's how to listen for the events 
         // moduleName - The name of the module loaded.
         // next - A function that proceeds to the next stage in the event workflow (see below).
     });
+    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleEvicted, function(moduleName)
+    {
+        // Called whenever a module has been evicted from memory
+
+        // moduleName - The name of the module evicted.
+    });
+    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDestroyed, function(moduleName)
+    {
+        // Called after the system has called the destroy method of the module (just before the eviction)
+
+        // moduleName - The name of the module loaded.
+    });
 
 Next Function
 -------------
@@ -300,10 +312,26 @@ the function `when` on the `future` object. See example below :
     //Do some processing
 
     dynamicModuleLoader.evict('test-dynamic-module').when(function (err, packageName) {
-        //Package 'pacakgeName' correctly evicted from the cache if there is no 'err'
+        //Package 'packageName' correctly evicted from the cache if there is no 'err'
     });
 
 ```
+
+One particularity of this evict function is that it will try to call a function 'destroy(callback)' of your module so you can
+on cleanup any resource you want to cleanup (especially useful when using c++ native library). Here is an example of how
+it work :
+
+You need to export inside your module a function named `destroy` which takes 1 argument, the callback function :
+
+```javascript
+module.exports.destroy = function(callback) {
+ //Implement what you want to do just before the module is evicted
+ callback(); //This function call is mandatory as it allows the system to know when you're done and continue with the eviction
+}
+```
+
+If the module doesn't contains a function named `destroy` then the eviction of the module will be done directly.
+
 
 All Properties and Defaults
 ---------------------------

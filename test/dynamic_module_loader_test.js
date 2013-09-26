@@ -73,14 +73,15 @@ describe('DynamicModuleLoaderTest', function ()
                    lockManager = new LockManager({lockDir: path.join(tmpDir, "/locks")});
 
                    var config = {
-                       lockManager:lockManager,
+                       lockManager: lockManager,
                        downloadDir: path.join(tmpDir + "/downloads"),
-                       moduleInstallationDir:path.join(tmpDir + "/installed-modules"),
-                       modulePackageServerUrl:"http://gattacus"
+                       moduleInstallationDir: path.join(tmpDir + "/installed-modules"),
+                       modulePackageServerUrl: "http://gattacus"
                    };
 
-                   if (process.env.NPM_PATH){
-                      config.npmExecutablePath = process.env.NPM_PATH
+                   if (process.env.NPM_PATH)
+                   {
+                       config.npmExecutablePath = process.env.NPM_PATH
                    }
 
                    // Create the module loader to be tested.
@@ -89,14 +90,14 @@ describe('DynamicModuleLoaderTest', function ()
                    wrench.mkdirSyncRecursive(tmpDir);
 
                    // In preparation for our test, we tar and compress up the test dynamic module.
-                   fstream.Reader({path:dynamicModuleResourceDir, type:"Directory"})
+                   fstream.Reader({path: dynamicModuleResourceDir, type: "Directory"})
                        .pipe(tar.Pack())
                        .pipe(zlib.createGzip())
                        .pipe(fstream.Writer(dynamicModuleTarGzipFilePath).on('close', function (err)
-                   {
-                       expect(err).to.equal(undefined);
-                       zipTestModule();
-                   }));
+                       {
+                           expect(err).to.equal(undefined);
+                           zipTestModule();
+                       }));
 
                    // We also zip the test module.
                    // NOTE 2012/09/24 KTD: We have to spawn the zip program because the zip support in Node is
@@ -116,7 +117,7 @@ describe('DynamicModuleLoaderTest', function ()
                    {
                        // Using this form of child process execution because spawn doesn't work for wildcards when
                        // calling zip.  The zip process exits with code "12", saying that it has nothing to do.
-                       exec("zip " + params, {cwd:resourceDir}, function (error, stdout, stderr)
+                       exec("zip " + params, {cwd: resourceDir}, function (error, stdout, stderr)
                        {
                            if (error)
                            {
@@ -142,7 +143,7 @@ describe('DynamicModuleLoaderTest', function ()
 
             // The DML adds the lock manager to its settings, so we add it to the default values we create before
             // asserting equality.
-            var expectedSettings = extend(dmlConfig.createDefaultConfig(), {lockManager:lm.settings.lockManager});
+            var expectedSettings = extend(dmlConfig.createDefaultConfig(), {lockManager: lm.settings.lockManager});
             assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
         });
@@ -160,10 +161,10 @@ describe('DynamicModuleLoaderTest', function ()
         it('should initialize with settings supplied, overriding default ones and adding new ones', function (done)
         {
             var settings = {wibble: 'drumsticks', downloadDir: 'giblets'};
-            var lm = new DynamicModuleLoader(function()
-                                     {
-                                         return settings;
-                                     });
+            var lm = new DynamicModuleLoader(function ()
+                                             {
+                                                 return settings;
+                                             });
             var expectedSettings = extend(lm.settings, settings);
             assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
@@ -186,7 +187,7 @@ describe('DynamicModuleLoaderTest', function ()
 
                             expect(err.statusCode, 'error status code').to.equal(404);
                             expect(err.message, 'error message').to.equal("Unable to download from " + sourceUrl + " to " +
-                                                                              targetFile + ".  Status code 404.");
+                                                                          targetFile + ".  Status code 404.");
                             expect(fs.existsSync(targetFile), 'target file existence').to.equal(false);
 
                             scope.done();
@@ -465,7 +466,8 @@ describe('DynamicModuleLoaderTest', function ()
         it('should stop download with error when moduleDownloaded event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile,
+                                                                                          proceed)
             {
                 proceed(new Error('moduleDownloaded halt!'));
             });
@@ -473,15 +475,18 @@ describe('DynamicModuleLoaderTest', function ()
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
+                                                                                         proceed)
             {
                 proceed(new Error('moduleExtracted halt!'));
             });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
+                                                                                         proceed)
             {
                 proceed(new Error('moduleInstalled halt!'));
             });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
+                                                                                      proceed)
             {
                 proceed(new Error('moduleLoaded halt!'));
             });
@@ -492,7 +497,8 @@ describe('DynamicModuleLoaderTest', function ()
         it('should stop download with error when moduleExtracted event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
+                                                                                         proceed)
             {
                 proceed(new Error('moduleExtracted halt!'));
             });
@@ -500,11 +506,13 @@ describe('DynamicModuleLoaderTest', function ()
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
+                                                                                         proceed)
             {
                 proceed(new Error('moduleInstalled halt!'));
             });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
+                                                                                      proceed)
             {
                 proceed(new Error('moduleLoaded halt!'));
             });
@@ -515,7 +523,8 @@ describe('DynamicModuleLoaderTest', function ()
         it('should stop download with error when moduleInstalled event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
+                                                                                         proceed)
             {
                 proceed(new Error('moduleInstalled halt!'));
             });
@@ -523,7 +532,8 @@ describe('DynamicModuleLoaderTest', function ()
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
+                                                                                      proceed)
             {
                 proceed(new Error('moduleLoaded halt!'));
             });
@@ -555,15 +565,18 @@ describe('DynamicModuleLoaderTest', function ()
                 // To test, we register event listeners that will cause an error when events are fired we don't expect.
                 // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
                 // there's a problem.
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName,
+                                                                                              downloadedFile, proceed)
                 {
                     proceed(new Error('moduleDownloaded event not expected'));
                 });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile, proceed)
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
+                                                                                             proceed)
                 {
                     proceed(new Error('moduleExtracted event not expected'));
                 });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
+                                                                                             proceed)
                 {
                     proceed(new Error('moduleInstalled event not expected'));
                 });
@@ -583,7 +596,8 @@ describe('DynamicModuleLoaderTest', function ()
         });
     });
 
-    describe('evict', function () {
+    describe('evict', function ()
+    {
         it('should load then evict and not keep anything in cache', function (done)
         {
             var testModuleName = 'test-dynamic-module';
@@ -600,60 +614,147 @@ describe('DynamicModuleLoaderTest', function ()
                     eventEvicted.push(moduleName);
                 });
 
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDestroyed, function (moduleName)
+                {
+                    done(new Error('No destructor on the module...'));
+                });
+
                 // Now "unload" it from the cache.
                 var next = dynamicModuleLoader.evict(testModuleName);
 
-                next.when(function (){
-                    expect(eventEvicted.length).to.equal(1);
-                    expect(eventEvicted[0]).to.equal(testModuleName)
-                    expect(require.cache[path.resolve(testModuleName)]).to.equal(undefined);
+                next.when(function ()
+                          {
+                              expect(eventEvicted.length).to.equal(1);
+                              expect(eventEvicted[0]).to.equal(testModuleName)
+                              expect(require.cache[path.resolve(testModuleName)]).to.equal(undefined);
 
-                    //Check memory usage
-                    //var afterMemory = process.memoryUsage();
-//                    console.log("Before load : " + util.inspect(beforeMemory));
-//                    console.log("After load : " + util.inspect(afterLoadedMemory))
-//                    console.log("After evict : " + util.inspect(afterMemory));
+                              // To test, we register event listeners that will cause an error when events are fired we don't expect.
+                              // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
+                              // there's a problem.
+                              dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName,
+                                                                                                            downloadedFile,
+                                                                                                            proceed)
+                              {
+                                  proceed(new Error('moduleDownloaded event not expected'));
+                              });
+                              dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName,
+                                                                                                           downloadedFile,
+                                                                                                           proceed)
+                              {
+                                  proceed(new Error('moduleExtracted event not expected'));
+                              });
+                              dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName,
+                                                                                                           downloadedFile,
+                                                                                                           proceed)
+                              {
+                                  proceed(new Error('moduleInstalled event not expected'));
+                              });
 
-                    // To test, we register event listeners that will cause an error when events are fired we don't expect.
-                    // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
-                    // there's a problem.
-                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
-                    {
-                        proceed(new Error('moduleDownloaded event not expected'));
-                    });
-                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile, proceed)
-                    {
-                        proceed(new Error('moduleExtracted event not expected'));
-                    });
-                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile, proceed)
-                    {
-                        proceed(new Error('moduleInstalled event not expected'));
-                    });
+                              // We expect this listener to be called.
+                              var eventsCalled = {};
+                              dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName,
+                                                                                                        proceed)
+                              {
+                                  eventsCalled.moduleLoaded = true;
+                                  expect(moduleName, "moduleName").to.equal(testModuleName);
+                                  proceed();
+                              });
 
-                    // We expect this listener to be called.
-                    var eventsCalled = {};
-                    dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
-                    {
-                        eventsCalled.moduleLoaded = true;
-                        expect(moduleName, "moduleName").to.equal(testModuleName);
-                        proceed();
-                    });
+                              // Run the test again.
+                              runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, validate);
 
-                    // Run the test again.
-                    runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, validate);
+                              function validate()
+                              {
+                                  expect(eventsCalled.moduleLoaded).to.equal(true);
+                                  done();
+                              }
+                          });
+            }
 
-                    function validate(){
-                        expect(eventsCalled.moduleLoaded).to.equal(true);
-                        done();
-                    }
+        });
+
+        it('should work with a destructor', function (done)
+        {
+            var testModuleName = 'test-dynamic-module';
+            //var beforeMemory = process.memoryUsage();
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            //var afterLoadedMemory = process.memoryUsage();
+
+            function runSecondTest(module)
+            {
+                module.destroy = function (callBack)
+                {
+                    callBack();
+                };
+                var eventEvicted = [];
+                var eventDestroyed = [];
+                // Register the event listener that will halt proceedings.
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleEvicted, function (moduleName)
+                {
+                    eventEvicted.push(moduleName);
                 });
+
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDestroyed, function (moduleName)
+                {
+                    eventDestroyed.push(moduleName);
+                });
+
+                // Now "unload" it from the cache.
+                var next = dynamicModuleLoader.evict(testModuleName);
+
+                next.when(function ()
+                          {
+                              expect(eventEvicted.length).to.equal(1);
+                              expect(eventEvicted[0]).to.equal(testModuleName);
+                              expect(eventDestroyed.length).to.equal(1);
+                              expect(eventDestroyed[0]).to.equal(testModuleName)
+                              done();
+                          });
+            }
+
+        });
+
+        it('should work with a destructor not a function', function (done)
+        {
+            var testModuleName = 'test-dynamic-module';
+            //var beforeMemory = process.memoryUsage();
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            //var afterLoadedMemory = process.memoryUsage();
+
+            function runSecondTest(module)
+            {
+                module.destroy = "Toto va a la plage";
+                var eventEvicted = [];
+                var eventDestroyed = [];
+                // Register the event listener that will halt proceedings.
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleEvicted, function (moduleName)
+                {
+                    eventEvicted.push(moduleName);
+                });
+
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDestroyed, function (moduleName)
+                {
+                    done(new Error("Destroyed event called when destroy is not a function"))
+                });
+
+                // Now "unload" it from the cache.
+                var next = dynamicModuleLoader.evict(testModuleName);
+
+                next.when(function ()
+                          {
+                              expect(eventEvicted.length).to.equal(1);
+                              expect(eventEvicted[0]).to.equal(testModuleName);
+                              expect(eventDestroyed.length).to.equal(0);
+                              done();
+                          });
             }
 
         });
     });
 
-    function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath, explicitLoadMethodExtension,
-                     shouldRegisterListeners, expectedErrorMessage, expectModuleInstallationDirRename, done, downloadPath)
+    function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath,
+                     explicitLoadMethodExtension, shouldRegisterListeners, expectedErrorMessage,
+                     expectModuleInstallationDirRename, done, downloadPath, addModuleInCallback)
     {
         // Mock out the call to retrieve the binary and return the one we packaged up in the setup method.
         var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath, downloadPath);
@@ -665,12 +766,13 @@ describe('DynamicModuleLoaderTest', function ()
         var eventsCalled = {
             moduleDownloaded: 0,
             moduleExtracted: 0,
-            moduleInstalled : 0,
+            moduleInstalled: 0,
             moduleLoaded: 0
         };
         if (shouldRegisterListeners)
         {
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile,
+                                                                                          proceed)
             {
                 eventsCalled.moduleDownloaded += 1;
                 expect(moduleName, "moduleName").to.equal(targetModuleName);
@@ -680,7 +782,8 @@ describe('DynamicModuleLoaderTest', function ()
 
                 proceed();
             });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, extractLocation, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, extractLocation,
+                                                                                         proceed)
             {
                 eventsCalled.moduleExtracted += 1;
                 expect(moduleName, "moduleName").to.equal(targetModuleName);
@@ -689,7 +792,8 @@ describe('DynamicModuleLoaderTest', function ()
 
                 proceed();
             });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, installationLocation, proceed)
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName,
+                                                                                         installationLocation, proceed)
             {
                 eventsCalled.moduleInstalled += 1;
                 expect(moduleName, "moduleName").to.equal(targetModuleName);
@@ -698,7 +802,7 @@ describe('DynamicModuleLoaderTest', function ()
                 var expectedLocation2 = path.join(expectedLocation1, targetModuleName);
 
                 expect(installationLocation === expectedLocation1 || installationLocation === expectedLocation2,
-                    "installationLocation")
+                       "installationLocation")
                     .to.equal(true);
 
                 assertModuleLockStatus(true);
@@ -718,47 +822,48 @@ describe('DynamicModuleLoaderTest', function ()
 
         // Now kick off the module.
         var downloadedModule;
-        if (downloadPath) {
+        if (downloadPath)
+        {
             downloadPath = downloadPath + expectedDownloadTarget;
         }
 
         var result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension, downloadPath);
         result.when(function (err, module)
-        {
-            scope.done();
+                    {
+                        scope.done();
 
-            if (expectedErrorMessage)
-            {
-                // We expect an error.  Make sure it's the right one.
-                expect(err.message, 'error message').to.equal(expectedErrorMessage);
+                        if (expectedErrorMessage)
+                        {
+                            // We expect an error.  Make sure it's the right one.
+                            expect(err.message, 'error message').to.equal(expectedErrorMessage);
 
-                // Make sure we have a renamed module installation directory.
-                expectModuleInstallationDirRename(targetModuleName);
+                            // Make sure we have a renamed module installation directory.
+                            expectModuleInstallationDirRename(targetModuleName);
 
-                done();
-            }
-            else
-            {
-                // No error expected.  Make sure everything functioned correctly.
-                expect(err, 'error object').to.equal(undefined);
-                expect(module, 'dynamically loaded module').to.not.equal(undefined);
+                            done();
+                        }
+                        else
+                        {
+                            // No error expected.  Make sure everything functioned correctly.
+                            expect(err, 'error object').to.equal(undefined);
+                            expect(module, 'dynamically loaded module').to.not.equal(undefined);
 
-                expect(module.name, 'module name').to.equal("This Is My Name");
+                            expect(module.name, 'module name').to.equal("This Is My Name");
 
-                var future = module.hello();
-                expect(future, 'dynamic module future').to.not.equal(undefined);
+                            var future = module.hello();
+                            expect(future, 'dynamic module future').to.not.equal(undefined);
 
-                future.when(function (err, result)
-                {
-                    expect(err, 'dynamic module error object').to.equal(undefined);
-                    expect(result, 'result of dynamic module future call').to.equal("hello world");
+                            future.when(function (err, result)
+                                        {
+                                            expect(err, 'dynamic module error object').to.equal(undefined);
+                                            expect(result, 'result of dynamic module future call').to.equal("hello world");
 
-                    downloadedModule = module;
+                                            downloadedModule = module;
 
-                    loadAgain();
-                });
-            }
-        });
+                                            loadAgain();
+                                        });
+                        }
+                    });
 
         function loadAgain()
         {
@@ -767,12 +872,12 @@ describe('DynamicModuleLoaderTest', function ()
             // cache.
             result = dynamicModuleLoader.load(targetModuleName, explicitLoadMethodExtension, downloadPath);
             result.when(function (err, module)
-            {
-                expect(err, 'error object').to.equal(undefined);
-                expect(module).to.equal(downloadedModule);
+                        {
+                            expect(err, 'error object').to.equal(undefined);
+                            expect(module).to.equal(downloadedModule);
 
-                assertEventsCalled();
-            });
+                            assertEventsCalled();
+                        });
         }
 
         function assertEventsCalled()
@@ -786,7 +891,7 @@ describe('DynamicModuleLoaderTest', function ()
             }
 
             assertModuleLockStatus(false);
-            done();
+            done(addModuleInCallback ? downloadedModule : undefined);
         }
 
         function assertModuleLockStatus(expectedStatus)
@@ -798,7 +903,7 @@ describe('DynamicModuleLoaderTest', function ()
 
     function doNotExpectDownloadRequest()
     {
-        return { done:function ()
+        return { done: function ()
         {
         } };
     }
@@ -828,7 +933,7 @@ describe('DynamicModuleLoaderTest', function ()
         var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
         expect(fileNames.length, 'renamed installation dir').to.equal(1);
         expect(_.str.startsWith(fileNames[0], targetModuleName + "-ERROR-"),
-            'renamed installation dir name was ' + fileNames[0])
+               'renamed installation dir name was ' + fileNames[0])
             .to.equal(true);
     }
 });
