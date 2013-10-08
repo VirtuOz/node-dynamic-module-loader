@@ -178,8 +178,8 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var targetFile = tmpDir + "/file.tar.gz";
             var sourceUrl = "http://localhost/not-found.tar.gz";
-            var result = dynamicModuleLoader.__downloadFile(sourceUrl, targetFile);
             var scope = nock("http://localhost").get("/not-found.tar.gz").reply(404);
+            var result = dynamicModuleLoader.__downloadFile(sourceUrl, targetFile);
             result.when(function (err, filePath)
                         {
                             expect(err, 'error object').to.not.equal(undefined);
@@ -206,7 +206,7 @@ describe('DynamicModuleLoaderTest', function ()
                             expect(filePath, 'file path').to.equal(undefined);
 
                             expect(err.statusCode, 'error status code').to.equal(undefined);
-                            expect(_.str.startsWith(err.message, "getaddrinfo ")).to.be.true;
+                            expect(_.str.contains(err.message, "getaddrinfo ")).to.be.true;
                             expect(fs.existsSync(targetFile), 'target file existence').to.equal(false);
 
                             done();
@@ -216,6 +216,25 @@ describe('DynamicModuleLoaderTest', function ()
         it('should download file to temp directory', function (done)
         {
             var host = "http://gattacus";
+            var path = "/test_dynamic_module.tar.gz";
+            var sourceUrl = host + path;
+            var scope = nock(host).get(path).replyWithFile(200, dynamicModuleTarGzipFilePath);
+            var targetFile = tmpDir + "/downloaded.tar.gz";
+            var result = dynamicModuleLoader.__downloadFile(sourceUrl, targetFile);
+            result.when(function (err, filePath)
+                        {
+                            expect(err, 'error object').to.equal(undefined);
+                            expect(filePath, 'file path').to.equal(targetFile);
+                            expect(fs.existsSync(targetFile), 'target file existence').to.equal(true);
+
+                            scope.done();
+                            done();
+                        });
+        });
+
+        it('should download file from https', function (done)
+        {
+            var host = "https://gattacus";
             var path = "/test_dynamic_module.tar.gz";
             var sourceUrl = host + path;
             var scope = nock(host).get(path).replyWithFile(200, dynamicModuleTarGzipFilePath);
