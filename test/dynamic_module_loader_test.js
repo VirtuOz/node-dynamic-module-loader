@@ -132,7 +132,6 @@ describe('DynamicModuleLoaderTest', function ()
                    }
                });
 
-    /*
     describe('initialization', function ()
     {
         it('should initialize with default settings when no settings supplied', function (done)
@@ -413,7 +412,6 @@ describe('DynamicModuleLoaderTest', function ()
             done();
         }
     });
-    */
 
     var NOT_OVERRIDING_FILE_EXTENSION = undefined;
     var NOT_EXPECTING_ERROR_MESSAGE = undefined;
@@ -661,14 +659,16 @@ describe('DynamicModuleLoaderTest', function ()
             }
         });
     });
-    /*
+
     describe('evict', function ()
     {
         it('should load then evict and not keep anything in cache', function (done)
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz',
+                dynamicModuleTarGzipFilePath, NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE,
+                doNotExpectModuleInstallationDirRename, runSecondTest);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest()
@@ -727,7 +727,9 @@ describe('DynamicModuleLoaderTest', function ()
                               });
 
                               // Run the test again.
-                              runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, validate);
+                              runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz',
+                                  dynamicModuleZipFilePath, '.zip', DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE,
+                                  doNotExpectModuleInstallationDirRename, validate);
 
                               function validate()
                               {
@@ -743,7 +745,9 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE,
+                doNotExpectModuleInstallationDirRename, runSecondTest, undefined, true);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest(module)
@@ -784,7 +788,9 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE,
+                doNotExpectModuleInstallationDirRename, runSecondTest, undefined, true);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest(module)
@@ -817,7 +823,7 @@ describe('DynamicModuleLoaderTest', function ()
 
         });
     });
-    */
+
 
     function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath,
                      explicitLoadMethodExtension, shouldRegisterListeners, expectedErrorMessage,
