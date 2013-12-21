@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 VirtuOz Inc. All rights reserved.
+ * Copyright 2012-2013 Nuance Communications Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ describe('DynamicModuleLoaderTest', function ()
                    }
                });
 
-
+    /*
     describe('initialization', function ()
     {
         it('should initialize with default settings when no settings supplied', function (done)
@@ -413,18 +413,25 @@ describe('DynamicModuleLoaderTest', function ()
             done();
         }
     });
+    */
 
+    var NOT_OVERRIDING_FILE_EXTENSION = undefined;
+    var NOT_EXPECTING_ERROR_MESSAGE = undefined;
+    var REGISTER_LISTENERS = true;
+    var DO_NOT_REGISTER_LISTENERS = false;
 
     describe('load', function ()
     {
         it('should download, uncompress and return a valid module from a .tar.gz source with a download path provided', function (done)
         {
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done, "http://MyPath")
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, 
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done, "http://MyPath")
         });
 
         it('should download, uncompress and return a valid module from a .tar.gz source', function (done)
         {
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done)
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done)
         });
 
         it('should download, uncompress and return a valid module from a zip source with embedded root dir', function (done)
@@ -433,16 +440,18 @@ describe('DynamicModuleLoaderTest', function ()
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
-            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, done);
+            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done);
         });
 
-        it('should download, uncompress and return a valid module from a zip source with no embedded root dir - XXX', function (done)
+        it('should download, uncompress and return a valid module from a zip source with no embedded root dir', function (done)
         {
             // Override the default extension to be .zip.
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
-            runTest(expectDownloadRequest, '/test-dynamic-module-no-root-dir.zip', dynamicModuleZipFileNoRootDirPath, undefined, true, undefined, expectModuleInstallationDirRename, done);
+            runTest(expectDownloadRequest, '/test-dynamic-module-no-root-dir.zip', dynamicModuleZipFileNoRootDirPath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done);
         });
 
         it('should download, uncompress and return a valid module from a .tar.gz source when an overriding extension is specified', function (done)
@@ -451,7 +460,8 @@ describe('DynamicModuleLoaderTest', function ()
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .tar.gz module specifying the extension explicitly in the load call.
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, ".tar.gz", true, undefined, expectModuleInstallationDirRename, done);
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                ".tar.gz", REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done);
         });
 
         it('should download, uncompress and return a valid module from a .zip source when an overriding extension is specified', function (done)
@@ -460,18 +470,21 @@ describe('DynamicModuleLoaderTest', function ()
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
 
             // Now request a .zip module specifying the extension explicitly in the load call.
-            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, '.zip', true, undefined, doNotExpectModuleInstallationDirRename, done);
+            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, 
+                '.zip', REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done);
         });
 
         it('should download module when no listeners registered', function (done)
         {
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, false, undefined, doNotExpectModuleInstallationDirRename, done);
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done);
         });
 
         it('should skip npm installation', function (done)
         {
             dynamicModuleLoader.settings.npmSkipInstall = true;
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, false, undefined, doNotExpectModuleInstallationDirRename, ensureNodeModulesDirectoryNotPresent);
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, ensureNodeModulesDirectoryNotPresent);
 
             function ensureNodeModulesDirectoryNotPresent()
             {
@@ -482,123 +495,156 @@ describe('DynamicModuleLoaderTest', function ()
             }
         });
 
+        function listenerHaltWithError(eventName)
+        {
+            return function (moduleName, downloadedFile, proceed)
+            {
+                for (var i = arguments.length - 1; i >= 0; i--)
+                {
+                    if (_.isFunction(arguments[i]))
+                    {
+                        // We've found our callback function.  Signify that there's an error.
+                        arguments[i](new Error(eventName + ' halt!'));
+                        return;
+                    }
+                }
+            }
+        }
+
         it('should stop download with error when moduleDownloaded event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile,
-                                                                                          proceed)
-            {
-                proceed(new Error('moduleDownloaded halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, listenerHaltWithError('moduleDownloaded'));
 
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
-                                                                                         proceed)
-            {
-                proceed(new Error('moduleExtracted halt!'));
-            });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
-                                                                                         proceed)
-            {
-                proceed(new Error('moduleInstalled halt!'));
-            });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
-                                                                                      proceed)
-            {
-                proceed(new Error('moduleLoaded halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, listenerHaltWithError('moduleExtracted'));
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, listenerHaltWithError('moduleInstalled'));
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, listenerHaltWithError('moduleLoaded'));
 
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, 'moduleDownloaded halt!', doNotExpectModuleInstallationDirToBePresent, done)
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, 'moduleDownloaded halt!', doNotExpectModuleInstallationDirToBePresent, done)
         });
 
         it('should stop download with error when moduleExtracted event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
-                                                                                         proceed)
-            {
-                proceed(new Error('moduleExtracted halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, listenerHaltWithError('moduleExtracted'));
 
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
-                                                                                         proceed)
-            {
-                proceed(new Error('moduleInstalled halt!'));
-            });
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
-                                                                                      proceed)
-            {
-                proceed(new Error('moduleLoaded halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, listenerHaltWithError('moduleInstalled'));
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, listenerHaltWithError('moduleLoaded'));
 
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, 'moduleExtracted halt!', expectModuleInstallationDirRename, done)
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, 'moduleExtracted halt!', expectModuleInstallationDirRename, done)
         });
 
         it('should stop download with error when moduleInstalled event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
-                                                                                         proceed)
-            {
-                proceed(new Error('moduleInstalled halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, listenerHaltWithError('moduleInstalled'));
 
             // These event handlers are called later in the workflow, so they should have no effect as processing should
             // have halted as a result of the above event.  We register them to make sure that the correct handler is
             // halting things.
-            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, downloadedFile,
-                                                                                      proceed)
-            {
-                proceed(new Error('moduleLoaded halt!'));
-            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, listenerHaltWithError('moduleLoaded'));
 
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, 'moduleInstalled halt!', expectModuleInstallationDirRename, done)
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, 'moduleInstalled halt!', expectModuleInstallationDirRename, done)
         });
 
         it('should download stop with error when moduleLoaded event listener reports an error', function (done)
         {
             // Register the event listener that will halt proceedings.
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, listenerHaltWithError('moduleLoaded'));
+
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, 'moduleLoaded halt!', expectModuleInstallationDirRename, done)
+        });
+
+        it('should not rename in-error downloaded module directory if the ERROR package already exists', function (done)
+        {
+            // Register the event listener that will halt proceedings.
             dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
             {
+                delete dynamicModuleLoader.downloadedModuleMainFileCache[moduleName];
                 proceed(new Error('moduleLoaded halt!'));
             });
 
-            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, 'moduleLoaded halt!', expectModuleInstallationDirRename, done)
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, REGISTER_LISTENERS, 'moduleLoaded halt!',
+                expectModuleInstallationDirRenameAndRecordTimestamp, errorAgainAndCheck);
+
+            var originalRenamedModuleDirTimestamp;
+            var moduleErrorDirPath;
+            var moduleDirPath;
+            function expectModuleInstallationDirRenameAndRecordTimestamp(targetModuleName)
+            {
+                // Makes sure the module dir was renamed.
+                expectModuleInstallationDirRename(targetModuleName);
+
+                moduleDirPath = path.join(dynamicModuleLoader.settings.moduleInstallationDir, targetModuleName);
+                moduleErrorDirPath = path.join(dynamicModuleLoader.settings.moduleInstallationDir, targetModuleName + "-ERROR");
+
+                // Make sure module dir path does not exist.
+                expect(fs.existsSync(moduleDirPath, "module directory path")).to.equal(false);
+
+                // Make sure module error dir path does exist.
+                expect(fs.existsSync(moduleErrorDirPath, "module error directory path")).to.equal(true);
+
+                var stat = fs.statSync(moduleErrorDirPath);
+                originalRenamedModuleDirTimestamp = stat.ctime;
+
+                // Make sure module dir path does not exist.
+                expect(fs.existsSync(moduleDirPath, "module directory path")).to.equal(false);
+            }
+
+            function errorAgainAndCheck()
+            {
+                runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                    NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, 'moduleLoaded halt!',
+                    expectOriginalErrorDirectoryStillInPlaceAndDownloadedPackageToBeDeleted, done);
+            }
+
+            function expectOriginalErrorDirectoryStillInPlaceAndDownloadedPackageToBeDeleted()
+            {
+                // Make sure module dir path does not exist.
+                expect(fs.existsSync(moduleDirPath),  "module directory path exists").to.equal(false);
+
+                // Make sure module error dir path does exist.
+                expect(fs.existsSync(moduleErrorDirPath), "module error directory path exists").to.equal(true);
+
+                var stat = fs.statSync(moduleErrorDirPath);
+                var currentErrorDirTimestamp = stat.ctime;
+                expect(currentErrorDirTimestamp.getTime(), "error dir timestamp").to.equal(originalRenamedModuleDirTimestamp.getTime());
+            }
         });
 
         it('should not download and extract a module if it is already extracted on the disk', function (done)
         {
             // Download a module and load it.
-            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, '.zip', true, undefined, doNotExpectModuleInstallationDirRename, runSecondTest);
+            runTest(expectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath,
+                '.zip', REGISTER_LISTENERS, NOT_OVERRIDING_FILE_EXTENSION, doNotExpectModuleInstallationDirRename, runSecondTest);
 
             function runSecondTest()
             {
                 // Now "unload" it from the cache.
                 dynamicModuleLoader.downloadedModuleMainFileCache = {};
 
+                function doNotExpectModuleDownloadedEvent(moduleName, downloadedFile, proceed)
+                {
+                    proceed(new Error('moduleDownloaded event not expected'));
+                }
+
                 // To test, we register event listeners that will cause an error when events are fired we don't expect.
                 // In this test, we expect that only the "module loaded" event will be fired.  If we get anything else then
                 // there's a problem.
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName,
-                                                                                              downloadedFile, proceed)
-                {
-                    proceed(new Error('moduleDownloaded event not expected'));
-                });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, downloadedFile,
-                                                                                             proceed)
-                {
-                    proceed(new Error('moduleExtracted event not expected'));
-                });
-                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, downloadedFile,
-                                                                                             proceed)
-                {
-                    proceed(new Error('moduleInstalled event not expected'));
-                });
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, doNotExpectModuleDownloadedEvent);
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, doNotExpectModuleDownloadedEvent);
+                dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, doNotExpectModuleDownloadedEvent);
 
                 // We expect this listener to be called.
                 var eventsCalled = {};
@@ -610,18 +656,19 @@ describe('DynamicModuleLoaderTest', function ()
                 });
 
                 // Run the test again.
-                runTest(doNotExpectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, done)
+                runTest(doNotExpectDownloadRequest, '/test-dynamic-module.zip', dynamicModuleZipFilePath, 
+                    '.zip', DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done)
             }
         });
     });
-
+    /*
     describe('evict', function ()
     {
         it('should load then evict and not keep anything in cache', function (done)
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest()
@@ -680,7 +727,7 @@ describe('DynamicModuleLoaderTest', function ()
                               });
 
                               // Run the test again.
-                              runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', false, undefined, doNotExpectModuleInstallationDirRename, validate);
+                              runTest(doNotExpectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleZipFilePath, '.zip', DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, validate);
 
                               function validate()
                               {
@@ -696,7 +743,7 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest, undefined, true);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest(module)
@@ -737,7 +784,7 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var testModuleName = 'test-dynamic-module';
             //var beforeMemory = process.memoryUsage();
-            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, true, undefined, expectModuleInstallationDirRename, runSecondTest, undefined, true);
+            runTest(expectDownloadRequest, '/' + testModuleName + '.tar.gz', dynamicModuleTarGzipFilePath, undefined, REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, expectModuleInstallationDirRename, runSecondTest, undefined, true);
             //var afterLoadedMemory = process.memoryUsage();
 
             function runSecondTest(module)
@@ -770,10 +817,11 @@ describe('DynamicModuleLoaderTest', function ()
 
         });
     });
+    */
 
     function runTest(expectDownloadRequest, expectedDownloadTarget, targetModulePackagePath,
                      explicitLoadMethodExtension, shouldRegisterListeners, expectedErrorMessage,
-                     expectModuleInstallationDirRename, done, downloadPath, addModuleInCallback)
+                     testModuleInstallationDirRenamed, done, downloadPath, addModuleInCallback)
     {
         // Mock out the call to retrieve the binary and return the one we packaged up in the setup method.
         var scope = expectDownloadRequest(expectedDownloadTarget, targetModulePackagePath, downloadPath);
@@ -851,14 +899,13 @@ describe('DynamicModuleLoaderTest', function ()
                     {
                         scope.done();
 
+                        // Make sure we have a renamed module installation directory.
+                        testModuleInstallationDirRenamed(targetModuleName);
+
                         if (expectedErrorMessage)
                         {
                             // We expect an error.  Make sure it's the right one.
                             expect(err.message, 'error message').to.equal(expectedErrorMessage);
-
-                            // Make sure we have a renamed module installation directory.
-                            expectModuleInstallationDirRename(targetModuleName);
-
                             done();
                         }
                         else
@@ -934,7 +981,7 @@ describe('DynamicModuleLoaderTest', function ()
             .replyWithFile(200, packagePath);
     }
 
-    function doNotExpectModuleInstallationDirToBePresent(targetModuleName)
+    function doNotExpectModuleInstallationDirToBePresent()
     {
         var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
         expect(fileNames.length, 'installation dir').to.equal(0);
@@ -943,16 +990,14 @@ describe('DynamicModuleLoaderTest', function ()
     function doNotExpectModuleInstallationDirRename(targetModuleName)
     {
         var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
-        expect(fileNames.length, 'installation dir').to.equal(1);
+        expect(fileNames.length, 'number of files in module installation dir').to.equal(1);
         expect(fileNames[0], 'installation dir name ').to.equal(targetModuleName);
     }
 
     function expectModuleInstallationDirRename(targetModuleName)
     {
         var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
-        expect(fileNames.length, 'renamed installation dir').to.equal(1);
-        expect(_.str.startsWith(fileNames[0], targetModuleName + "-ERROR-"),
-               'renamed installation dir name was ' + fileNames[0])
-            .to.equal(true);
+        expect(fileNames.length, 'number of files in module installation dir').to.equal(1);
+        expect(fileNames[0], 'installation error dir name').to.equal(targetModuleName + "-ERROR");
     }
 });
