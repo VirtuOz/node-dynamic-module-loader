@@ -595,9 +595,6 @@ describe('DynamicModuleLoaderTest', function ()
 
                 var stat = fs.statSync(moduleErrorDirPath);
                 originalRenamedModuleDirTimestamp = stat.ctime;
-
-                // Make sure module dir path does not exist.
-                expect(fs.existsSync(moduleDirPath, "module directory path")).to.equal(false);
             }
 
             function errorAgainAndCheck()
