@@ -1,10 +1,10 @@
 {
     "name": "dynamic-module-loader",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "homepage": "https://github.com/VirtuOz/node-dynamic-module-loader",
     "author": {
         "name": "Kevan Dunsmore",
-        "email": "kdunsmore@virtuoz.com"
+        "email": "kevan@sunsprinter.com"
     },
     "contributors": [
         {
@@ -28,14 +28,14 @@
         "jsclass": "3.0.9",
         "tar": "0.1.18",
         "winston": "0.6.2",
-        "xtend": "1.0.3"
+        "xtend": "1.0.3",
+        "wrench": "1.5.4"
     },
     "devDependencies": {
         "fstream": "0.1.23",
         "mocha": "1.12.0",
         "chai": "1.1.1",
         "nock": "0.18.2",
-        "wrench": "1.3.9",
         "longjohn": "0.2.1",
         "xunit-html-cov": "0.0.2"
     },
