@@ -25,6 +25,9 @@ describe('DynamicModuleLoaderConfigTest', function ()
             assert.equal(config.downloadLockTimeout, 30000, 'downloadLockTimeout');
             assert.equal(config.defaultRemoteServerPackageFileExtension, '.tar.gz', 'defaultRemoteServerPackageFileExtension');
             assert.equal(config.unzipExecutablePath, '/usr/bin/unzip', 'unzipExecutablePath', 'npmSkipInstall');
+            assert.equal(config.cleanUpEnabled, false);
+            assert.equal(config.cleanUpExecutablePath, '');
+            assert.equal(config.cleanUpScriptArguments, '');
             assert.equal(config.npmSkipInstall, false);
             assert.deepEqual(config.lockOwner, {id:'DynamicModuleLoader'}, 'lockOwner');
 

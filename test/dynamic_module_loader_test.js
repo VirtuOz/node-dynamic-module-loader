@@ -35,6 +35,8 @@ var fstream = require('fstream');
 var path = require('path');
 var exec = require('child_process').exec;
 var extend = require('xtend');
+var Future = require('futures').future;
+
 
 var DynamicModuleLoader = require('../index').DynamicModuleLoader;
 var dmlConfig = require('../index').config;
@@ -58,6 +60,9 @@ describe('DynamicModuleLoaderTest', function ()
 
     var dynamicModuleZipFilePath = dynamicModuleFilePath + ".zip";
     var dynamicModuleZipFileNoRootDirPath = dynamicModuleFilePath + "-no-root-dir.zip";
+
+    var dynamicModuleCleanUpExecPath = '/bin/sh';
+    var dynamicModuleCleanUpArgs = path.join(resourceDir, "cleanUp.sh");
 
     var lockManager;
     var dynamicModuleLoader;
@@ -491,6 +496,50 @@ describe('DynamicModuleLoaderTest', function ()
                 expect(fs.existsSync(path.join(dynamicModuleFilePath, '/node_modules'), 'node_modules directory exists')).to.equal(false);
                 done();
             }
+        });
+
+        it('should call clean up script when overriden', function(done)
+        {
+            var cleanUpCalled = false;
+            dynamicModuleLoader.settings.cleanUpEnabled  = true;
+            dynamicModuleLoader.clean = function()
+            {
+                var future = new Future();
+                cleanUpCalled = true;
+                future.fulfill(undefined, 'Hello World!');
+                return future;
+            };
+            var almostDone = function()
+            {
+                expect(cleanUpCalled, 'clean up called').to.equal(true);
+                done();
+            };
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, almostDone);
+        });
+
+        it('should call clean up script with the executable path given in configuration (assuming test running on a linux box)', function(done)
+        {
+            dynamicModuleLoader.settings.cleanUpEnabled = true;
+            dynamicModuleLoader.settings.cleanUpExecutablePath = dynamicModuleCleanUpExecPath;
+            dynamicModuleLoader.settings.cleanUpScriptArguments = dynamicModuleCleanUpArgs;
+
+            var almostDone = function()
+            {
+                var cleanUpLog = path.join(__dirname, '../cleanup.log');
+                var cleanUpCalled = fs.existsSync(cleanUpLog);
+                fs.unlink(cleanUpLog, function(err)
+                {
+                    if (err)
+                    {
+                       throw err;
+                    }
+                });
+                expect(cleanUpCalled, 'clean up called').to.equal(true);
+                done();
+            };
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, almostDone);
         });
 
         function listenerHaltWithError(eventName)
