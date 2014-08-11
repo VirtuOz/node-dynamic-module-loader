@@ -190,7 +190,7 @@ describe('DynamicModuleLoaderTest', function ()
                             expect(filePath, 'file path').to.equal(undefined);
 
                             expect(err.statusCode, 'error status code').to.equal(404);
-                            expect(err.message, 'error message').to.equal("Unable to download from " + sourceUrl + " to " +
+                            expect(err.message, 'error message').to.equal("[dynamic-module-loader] Unable to download from " + sourceUrl + " to " +
                                                                           targetFile + ".  Status code 404.");
                             expect(fs.existsSync(targetFile), 'target file existence').to.equal(false);
 
@@ -396,7 +396,7 @@ describe('DynamicModuleLoaderTest', function ()
                       {
                           expect(err, 'error').to.not.equal(undefined);
                           expect(packageJSONFilePath, 'package json file path').to.equal(undefined);
-                          expect(err.message, 'error message').to.equal('Unable to find package.json file in directory ' + targetDir + ' or any of its sub directories.');
+                          expect(err.message, 'error message').to.equal('[dynamic-module-loader] Unable to find package.json file in directory ' + targetDir + ' or any of its sub directories.');
 
                           done();
                       });
