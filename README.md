@@ -332,6 +332,17 @@ module.exports.destroy = function(callback) {
 
 If the module doesn't contains a function named `destroy` then the eviction of the module will be done directly.
 
+Logging
+-------
+
+By default, the _DynamicModuleLoader_ will create a new Winston instance, but you can set the logger you want to use instead:
+```javascript
+  var dynamicModuleLoader = new DynamicModuleLoader(undefined, require('winston'));
+```
+This will permit you to use for example the same winston instance than your app is already using, or even to use
+an other logger than winston. The only constrain is that the object you pass in paramater has the
+`info()`, `debug()` and `error()` functions defined.
+
 
 All Properties and Defaults
 ---------------------------
