@@ -29,7 +29,8 @@
         "tar": "0.1.18",
         "winston": "0.6.2",
         "xtend": "1.0.3",
-        "wrench": "1.5.4"
+        "wrench": "1.5.4",
+        "rimraf": "2.2.8"
     },
     "devDependencies": {
         "fstream": "0.1.23",

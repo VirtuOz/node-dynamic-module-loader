@@ -704,6 +704,131 @@ describe('DynamicModuleLoaderTest', function ()
                     '.zip', DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename, done)
             }
         });
+
+        it('should download the node_modules in a sub (shared) directory and copy them in the module dir', function (done)
+        {
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
+
+            var downloadedModule;
+            var scope = expectDownloadRequest('/test-dynamic-module.zip', dynamicModuleZipFilePath);
+
+            var eventsCalled = {
+                moduleDownloaded: 0,
+                moduleExtracted: 0,
+                moduleInstalled: 0,
+                moduleLoaded: 0
+            };
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function (moduleName, downloadedFile, proceed)
+            {
+                eventsCalled.moduleDownloaded += 1;
+                expect(moduleName, "moduleName").to.equal(dynamicModuleName);
+                expect(downloadedFile, "downloadedFile").to.equal(path.join(dynamicModuleLoader.settings.downloadDir, 'test-dynamic-module.zip'));
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleExtracted, function (moduleName, extractLocation, proceed)
+            {
+                eventsCalled.moduleExtracted += 1;
+                expect(moduleName, "moduleName").to.equal(dynamicModuleName);
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleInstalled, function (moduleName, installationLocation, proceed)
+            {
+                eventsCalled.moduleInstalled += 1;
+                expect(moduleName, "moduleName").to.equal(dynamicModuleName);
+
+                var expectedLocation1 = path.join(dynamicModuleLoader.settings.moduleInstallationDir, 'shared_dir', dynamicModuleName);
+                var expectedLocation2 = path.join(expectedLocation1, dynamicModuleName);
+
+                expect(installationLocation === expectedLocation1 || installationLocation === expectedLocation2,
+                       "installationLocation")
+                    .to.equal(true);
+                proceed();
+            });
+            dynamicModuleLoader.on(dynamicModuleLoader.events.moduleLoaded, function (moduleName, proceed)
+            {
+                eventsCalled.moduleLoaded += 1;
+                expect(moduleName, "moduleName").to.equal(dynamicModuleName);
+                proceed();
+            });
+
+            var result = dynamicModuleLoader.load(dynamicModuleName, undefined, undefined, 'shared_dir');
+            result.when(function (err, module)
+                        {
+                            scope.done();
+
+                            expect(err, 'error object').to.equal(undefined);
+
+                            // Check that the shared directory has been created.
+                            doNotExpectModuleInstallationDirRename('shared_dir');
+                            // Check that in this dir, we have: the module dir, the package.json and the node_modules
+                            var sharedDirPath = path.join(dynamicModuleLoader.settings.moduleInstallationDir, 'shared_dir');
+                            var fileNames = fs.readdirSync(sharedDirPath);
+                            expect(fileNames.length, 'number of files in the shared module installation dir').to.equal(3);
+                            expect(fileNames.indexOf(dynamicModuleName) > -1 && fileNames.indexOf('package.json') > -1 &&
+                                fileNames.indexOf('node_modules') > -1, 'shared dir contains module, package.json and node_modules ').to.equal(true);
+
+                            dynamicModuleLoader.__findPackageJSONFile(path.join(sharedDirPath, dynamicModuleName))
+                                .when(function (err, packageJSONFilePath)
+                                      {
+                                          // check that package.json has been copied correctly
+                                          var packageJsonOrig = fs.readFileSync(packageJSONFilePath, 'utf8');
+                                          var copiedPackageJson = fs.readFileSync(path.join(sharedDirPath, 'package.json'), 'utf8');
+                                          expect(copiedPackageJson, 'package.json has been copied').to.equal(packageJsonOrig);
+                                          // Check that the 2 node_modules dir contain the same files.
+                                          var sharedNodeModulesFiles = wrench.readdirSyncRecursive(path.join(sharedDirPath, 'node_modules'));
+                                          var copiedNodeModulesFiles = wrench.readdirSyncRecursive(path.join(path.dirname(packageJSONFilePath), 'node_modules'));
+                                          expect(copiedNodeModulesFiles, 'node_modules dir has been copied').to.deep.equal(sharedNodeModulesFiles);
+                                          
+                                          tryToRunModule(module);
+                                      });
+                        });
+
+            function tryToRunModule(module)
+            {
+                // Make sure the module works correctly.
+                expect(module, 'dynamically loaded module').to.not.equal(undefined);
+
+                expect(module.name, 'module name').to.equal("This Is My Name");
+
+                var future = module.hello();
+                expect(future, 'dynamic module future').to.not.equal(undefined);
+
+                future.when(function (err, result)
+                            {
+                                expect(err, 'dynamic module error object').to.equal(undefined);
+                                expect(result, 'result of dynamic module future call').to.equal("hello world");
+
+                                downloadedModule = module;
+
+                                assertEventsCalled(1);
+                                loadAgain();
+                            });
+            }
+
+            function loadAgain()
+            {
+                // Now we load the same module again.  We should get the same result back as before (the exact same
+                // module) but this time we shouldn't be downloading it.  We should get it from the previously-downloaded
+                // cache.
+                result = dynamicModuleLoader.load(dynamicModuleName, undefined, undefined, 'shared_dir');
+                result.when(function (err, module)
+                            {
+                                expect(err, 'error object').to.equal(undefined);
+                                expect(module).to.equal(downloadedModule);
+
+                                assertEventsCalled(1); // no new events since it was already installed
+                                done();
+                            });
+            }
+
+            function assertEventsCalled(nbTimes)
+            {
+                expect(eventsCalled.moduleDownloaded, "moduleDownloaded event called").to.equal(nbTimes);
+                expect(eventsCalled.moduleExtracted, "moduleExtracted event called").to.equal(nbTimes);
+                expect(eventsCalled.moduleInstalled, "moduleInstalled event called").to.equal(nbTimes);
+                expect(eventsCalled.moduleLoaded, "moduleLoaded event called").to.equal(nbTimes);
+            }
+        });
     });
 
     describe('evict', function ()
