@@ -249,7 +249,7 @@ the `moduleName` directory.
 
 Next time you install a module in the same `nodeModulesInstallDirName`, if the `package.json` file is the same, it will skip
 the `npm install` and directly copy the `node_modules/` in your newly installed module directory.
-If the dependencies has changed, it runs again `npm install` before copying the `node_modules/`.
+If the dependencies have changed, it runs again `npm install` before copying the `node_modules/`.
 
 
 Events
