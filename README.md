@@ -144,7 +144,7 @@ it interesting, the package uses Futures.  Here are the files in the package:
 We can call the _helloWorld_ function like this:
 
     var moduleResult = dynamicModuleLoader.load('test-dynamic-module');
-    result.when(function(err, module)
+    moduleResult.when(function(err, module)
                 {
                     if (err)
                     {
@@ -230,6 +230,26 @@ You can get the configuration settings like this:
     dynamicModuleLoader.getNpmSkipInstall();
 
 By default, NPM install is turned <b>on</b>, meaning that the "NPMSkipInstall" property is false.
+
+
+Sharing node_modules between modules
+------------------------------------
+
+If you plan to load a lot of modules containing often the same dependencies (e.g. deploying regularly new versions
+of a module), you can have the dynamic module loader sharing the node_modules instead of reinstalling them each time,
+in order to speed up the installation. To do that, load your module with the following arguments:
+```javascript
+    var dynamicModuleLoader = new DynamicModuleLoader();
+    var moduleResult = dynamicModuleLoader.load('test-dynamic-module', undefined, undefined, nodeModulesInstallDirName);
+```
+Instead of installing your module in `moduleInstallationDir/moduleName`, this will create an extra directory and your module
+will be installed in `moduleInstallationDir/nodeModulesInstallDirName/moduleName`. Then, it will copy the package.json of your
+module in `moduleInstallationDir/nodeModulesInstallDirName`, do the `npm install` there, and copy back the `node_modules/` in
+the `moduleName` directory.
+
+Next time you install a module in the same `nodeModulesInstallDirName`, if the `package.json` file is the same, it will skip
+the `npm install` and directly copy the `node_modules/` in your newly installed module directory.
+If the dependencies have changed, it runs again `npm install` before copying the `node_modules/`.
 
 
 Events
