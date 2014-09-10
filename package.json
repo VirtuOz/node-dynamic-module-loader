@@ -1,6 +1,6 @@
 {
     "name": "dynamic-module-loader",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "homepage": "https://github.com/VirtuOz/node-dynamic-module-loader",
     "author": {
         "name": "Kevan Dunsmore",
