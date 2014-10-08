@@ -850,9 +850,10 @@ describe('DynamicModuleLoaderTest', function ()
                 {
                     dynamicModuleLoader.zipInstalledModule(dynamicModuleName).when(function(err, zipPath)
                     {
-                        areZipEqual(path.join(dynamicModuleLoader.settings.moduleInstallationDir, "expected.zip"), zipPath, function(code)
+                        areZipEqual(path.join(dynamicModuleLoader.settings.moduleInstallationDir, "expected.zip"), zipPath, function(result)
                         {
-                            expect(code, 'diff return code').to.equal(true);
+                            expect(result, 'diff return code').to.equal(true);
+                            scope.done();
                             done();
                         });                     
                     });
@@ -875,9 +876,10 @@ describe('DynamicModuleLoaderTest', function ()
                 {
                     dynamicModuleLoader.zipInstalledModule(dynamicModuleName, sharedDirName).when(function(err, zipPath)
                     {
-                        areZipEqual(path.join(installationDir, "expected.zip"), zipPath, function(code)
+                        areZipEqual(path.join(installationDir, "expected.zip"), zipPath, function(result)
                         {
-                            expect(code, 'diff return code').to.equal(true);
+                            expect(result, 'diff return code').to.equal(true);
+                            scope.done();
                             done();
                         });                       
                     });
@@ -1268,6 +1270,12 @@ describe('DynamicModuleLoaderTest', function ()
             });
             unzip2.on('exit', function(code)
             {
+                if (output1 !== output2)
+                {
+                    console.log("[areZipEqual] Zip files differ");
+                    console.log("[areZipEqual] archive1:\n" + output1);
+                    console.log("[areZipEqual] archive2:\n" + output2);
+                }
                 callback(output1 === output2);
             })
         });
