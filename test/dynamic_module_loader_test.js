@@ -845,6 +845,10 @@ describe('DynamicModuleLoaderTest', function ()
                 var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', dynamicModuleName],
                     { cwd: dynamicModuleLoader.settings.moduleInstallationDir });
 
+                zip.stderr.on('data', function(data)
+                {
+                    console.log("Error while zipping expected.zip: " + data);
+                });
                 // End the response on zip exit
                 zip.on('exit', function (code)
                 {
@@ -1242,6 +1246,10 @@ describe('DynamicModuleLoaderTest', function ()
         var skipFirstLine = false;
         var output1 = "", output2 = "";
         var unzip1 = spawn('unzip', ['-lv', zip1Path]);
+        unzip1.stderr.on('data', function(data)
+        {
+            console.log("zip: " + data);
+        });
         unzip1.stdout.on('data', function(data)
         {
             if (skipFirstLine) // First line contains the name of the archive
@@ -1250,6 +1258,7 @@ describe('DynamicModuleLoaderTest', function ()
             }
             else
             {
+                console.log("[areZipEqual] Skipped first line: " + data);
                 skipFirstLine = true;
             }
         });
@@ -1257,6 +1266,10 @@ describe('DynamicModuleLoaderTest', function ()
         {
             skipFirstLine = false;
             var unzip2 = spawn('unzip', ['-lv', zip2Path]);
+            unzip2.stderr.on('data', function(data)
+            {
+                console.log("zip: " + data);
+            });
             unzip2.stdout.on('data', function(data)
             {
                 if (skipFirstLine)
@@ -1265,6 +1278,7 @@ describe('DynamicModuleLoaderTest', function ()
                 }
                 else
                 {
+                    console.log("[areZipEqual] Skipped first line: " + data);
                     skipFirstLine = true;
                 }
             });
