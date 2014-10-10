@@ -34,6 +34,7 @@ var tar = require('tar');
 var fstream = require('fstream');
 var path = require('path');
 var exec = require('child_process').exec;
+var spawn = require('child_process').spawn;
 var extend = require('xtend');
 var Future = require('futures').future;
 
@@ -831,6 +832,66 @@ describe('DynamicModuleLoaderTest', function ()
         });
     });
 
+    // Verify that the zipInstalledModule function has correctly created the zip
+    describe('zipInstalledModule', function()
+    {
+        it('should zip the installed module and return its path', function(done)
+        {
+            var sharedDirName = 'shared_dir';
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
+            var scope = expectDownloadRequest('/test-dynamic-module.zip', dynamicModuleZipFilePath);
+            dynamicModuleLoader.load(dynamicModuleName).when(function(err, module)
+            {
+                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', dynamicModuleName],
+                    { cwd: dynamicModuleLoader.settings.moduleInstallationDir });
+
+                zip.stderr.on('data', function(data)
+                {
+                    console.log("Error while zipping expected.zip: " + data);
+                });
+                // End the response on zip exit
+                zip.on('exit', function (code)
+                {
+                    dynamicModuleLoader.zipInstalledModule(dynamicModuleName).when(function(err, zipPath)
+                    {
+                        areZipEqual(path.join(dynamicModuleLoader.settings.moduleInstallationDir, "expected.zip"), zipPath, function(result)
+                        {
+                            expect(result, 'diff return code').to.equal(true);
+                            scope.done();
+                            done();
+                        });                     
+                    });
+                });
+            });
+        });
+        it('should zip the installed module and return its path (module installed in shared dir)', function(done)
+        {
+            var sharedDirName = 'shared_dir';
+            var installationDir = path.join(dynamicModuleLoader.settings.moduleInstallationDir, sharedDirName);
+            dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
+            var scope = expectDownloadRequest('/test-dynamic-module.zip', dynamicModuleZipFilePath);
+            dynamicModuleLoader.load(dynamicModuleName, undefined, undefined, sharedDirName).when(function(err, module)
+            {
+                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', dynamicModuleName],
+                    { cwd: installationDir });
+
+                // End the response on zip exit
+                zip.on('exit', function (code)
+                {
+                    dynamicModuleLoader.zipInstalledModule(dynamicModuleName, sharedDirName).when(function(err, zipPath)
+                    {
+                        areZipEqual(path.join(installationDir, "expected.zip"), zipPath, function(result)
+                        {
+                            expect(result, 'diff return code').to.equal(true);
+                            scope.done();
+                            done();
+                        });                       
+                    });
+                });
+            });
+        });
+    });
+
     describe('evict', function ()
     {
         it('should load then evict and not keep anything in cache', function (done)
@@ -1176,5 +1237,61 @@ describe('DynamicModuleLoaderTest', function ()
         var fileNames = fs.readdirSync(dynamicModuleLoader.settings.moduleInstallationDir);
         expect(fileNames.length, 'number of files in module installation dir').to.equal(1);
         expect(fileNames[0], 'installation error dir name').to.equal(targetModuleName + "-ERROR");
+    }
+
+    // Zip archives with same content can sometimes differs. We will compare the CRC32
+    // of the included files instead.
+    function areZipEqual(zip1Path, zip2Path, callback)
+    {
+        var skipFirstLine = false;
+        var output1 = "", output2 = "";
+        var unzip1 = spawn('unzip', ['-lv', zip1Path]);
+        unzip1.stderr.on('data', function(data)
+        {
+            console.log("zip: " + data);
+        });
+        unzip1.stdout.on('data', function(data)
+        {
+            if (skipFirstLine) // First line contains the name of the archive
+            {
+                output1 += data;
+            }
+            else
+            {
+                console.log("[areZipEqual] Skipped first line: " + data);
+                skipFirstLine = true;
+            }
+        });
+        unzip1.on('exit', function(code)
+        {
+            skipFirstLine = false;
+            var unzip2 = spawn('unzip', ['-lv', zip2Path]);
+            unzip2.stderr.on('data', function(data)
+            {
+                console.log("zip: " + data);
+            });
+            unzip2.stdout.on('data', function(data)
+            {
+                if (skipFirstLine)
+                {
+                    output2 += data;
+                }
+                else
+                {
+                    console.log("[areZipEqual] Skipped first line: " + data);
+                    skipFirstLine = true;
+                }
+            });
+            unzip2.on('exit', function(code)
+            {
+                if (output1 !== output2)
+                {
+                    console.log("[areZipEqual] Zip files differ");
+                    console.log("[areZipEqual] archive1:\n" + output1);
+                    console.log("[areZipEqual] archive2:\n" + output2);
+                }
+                callback(output1 === output2);
+            })
+        });
     }
 });
