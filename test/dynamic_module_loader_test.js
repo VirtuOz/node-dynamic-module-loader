@@ -837,13 +837,13 @@ describe('DynamicModuleLoaderTest', function ()
     {
         it('should zip the installed module and return its path', function(done)
         {
-            var sharedDirName = 'shared_dir';
+            var moduleInstallDir = path.join(dynamicModuleLoader.settings.moduleInstallationDir, dynamicModuleName);
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
             var scope = expectDownloadRequest('/test-dynamic-module.zip', dynamicModuleZipFilePath);
             dynamicModuleLoader.load(dynamicModuleName).when(function(err, module)
             {
-                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', dynamicModuleName],
-                    { cwd: dynamicModuleLoader.settings.moduleInstallationDir });
+                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', '.', '-i', '*'],
+                    { cwd: moduleInstallDir });
 
                 zip.stderr.on('data', function(data)
                 {
@@ -852,9 +852,10 @@ describe('DynamicModuleLoaderTest', function ()
                 // End the response on zip exit
                 zip.on('exit', function (code)
                 {
+                    fs.renameSync(path.join(moduleInstallDir, 'expected.zip'), path.join(tmpDir, 'expected.zip'));
                     dynamicModuleLoader.zipInstalledModule(dynamicModuleName).when(function(err, zipPath)
                     {
-                        areZipEqual(path.join(dynamicModuleLoader.settings.moduleInstallationDir, "expected.zip"), zipPath, function(result)
+                        areZipEqual(path.join(tmpDir, 'expected.zip'), zipPath, function(result)
                         {
                             expect(result, 'diff return code').to.equal(true);
                             scope.done();
@@ -867,20 +868,21 @@ describe('DynamicModuleLoaderTest', function ()
         it('should zip the installed module and return its path (module installed in shared dir)', function(done)
         {
             var sharedDirName = 'shared_dir';
-            var installationDir = path.join(dynamicModuleLoader.settings.moduleInstallationDir, sharedDirName);
+            var installationDir = path.join(dynamicModuleLoader.settings.moduleInstallationDir, sharedDirName, dynamicModuleName);
             dynamicModuleLoader.settings.defaultRemoteServerPackageFileExtension = '.zip';
             var scope = expectDownloadRequest('/test-dynamic-module.zip', dynamicModuleZipFilePath);
             dynamicModuleLoader.load(dynamicModuleName, undefined, undefined, sharedDirName).when(function(err, module)
             {
-                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip', dynamicModuleName],
+                var zip = spawn(dynamicModuleLoader.settings.zipExecutablePath, ['-r', 'expected.zip',  '.', '-i', '*'],
                     { cwd: installationDir });
 
                 // End the response on zip exit
                 zip.on('exit', function (code)
                 {
+                    fs.renameSync(path.join(installationDir, 'expected.zip'), path.join(tmpDir, 'expected.zip'));
                     dynamicModuleLoader.zipInstalledModule(dynamicModuleName, sharedDirName).when(function(err, zipPath)
                     {
-                        areZipEqual(path.join(installationDir, "expected.zip"), zipPath, function(result)
+                        areZipEqual(path.join(tmpDir, 'expected.zip'), zipPath, function(result)
                         {
                             expect(result, 'diff return code').to.equal(true);
                             scope.done();
