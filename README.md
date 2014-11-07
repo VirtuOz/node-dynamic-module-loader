@@ -352,6 +352,9 @@ module.exports.destroy = function(callback) {
 
 If the module doesn't contains a function named `destroy` then the eviction of the module will be done directly.
 
+**Important**: if you have loaded your module using the node_modules sharing mechanism (see above), you
+will need to call the evict function with the sharedDirectoryName in parameter: `dynamicModuleLoader.evict('test-dynamic-module', nodeModulesInstallDirName)`
+
 Logging
 -------
 
