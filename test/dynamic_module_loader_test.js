@@ -495,7 +495,7 @@ describe('DynamicModuleLoaderTest', function ()
             {
                 // We make sure that there is no "node_modules" directory in the expanded package.  If there is one it
                 // means that the NPM program was invoked, which is exactly what we want to avoid.
-                expect(fs.existsSync(path.join(dynamicModuleFilePath, '/node_modules'), 'node_modules directory exists')).to.equal(false);
+                expect(fs.existsSync(path.join(dynamicModuleInstallationPath, 'node_modules'), 'node_modules directory exists')).to.equal(false);
                 done();
             }
         });
