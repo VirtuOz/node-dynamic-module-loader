@@ -231,6 +231,23 @@ You can get the configuration settings like this:
 
 By default, NPM install is turned <b>on</b>, meaning that the "NPMSkipInstall" property is false.
 
+Using pre-installed dependencies
+--------------------------------
+
+If you want to pre-install your dependencies and reuse them for each module installation,
+for e.g. restrain the allowed dependencies, or avoid 'npm install' failures in production
+(which can be caused by network issues, or npm breaking changes), you can pre-install the
+wanted dependencies somewhere on your server, and the _DynamicModuleLoader_ will copy them
+in the directory of the module being installed (deleting the existing `node_modules/`
+directory if it is present).
+
+For that, instanciate the _DynamicModuleLoader_ with by specifiying a
+`preInstalledNodeModulesLocation` property, containing the path of the directory from where
+the pre-installed `node_modules/` directory will be copied.
+```javascript
+    new DynamicModuleLoader({ preInstalledNodeModulesLocation: '/home/dml/pre-installed-dependencies' });
+```
+
 
 Sharing node_modules between modules
 ------------------------------------

@@ -55,6 +55,7 @@ describe('DynamicModuleLoaderTest', function ()
     var resourceDir = path.join(__dirname, '/resources');
     var dynamicModuleResourceDir = path.join(resourceDir, dynamicModuleName);
     var dynamicModuleFilePath = path.join(tmpDir, '/' + dynamicModuleName);
+    var dynamicModuleInstallationPath = path.join(tmpDir, 'installed-modules', dynamicModuleName);
 
     var dynamicModuleTarFilePath = dynamicModuleFilePath + '.tar';
     var dynamicModuleTarGzipFilePath = dynamicModuleTarFilePath + ".gz";
@@ -494,10 +495,33 @@ describe('DynamicModuleLoaderTest', function ()
             {
                 // We make sure that there is no "node_modules" directory in the expanded package.  If there is one it
                 // means that the NPM program was invoked, which is exactly what we want to avoid.
-                expect(fs.existsSync(path.join(dynamicModuleFilePath, '/node_modules'), 'node_modules directory exists')).to.equal(false);
+                expect(fs.existsSync(path.join(dynamicModuleInstallationPath, 'node_modules'), 'node_modules directory exists')).to.equal(false);
                 done();
             }
         });
+
+        it('should copy already installed node_modules', function(done)
+        {
+            dynamicModuleLoader.settings.preInstalledNodeModulesLocation = resourceDir;
+
+            runTest(expectDownloadRequest, '/test-dynamic-module.tar.gz', dynamicModuleTarGzipFilePath,
+                NOT_OVERRIDING_FILE_EXTENSION, DO_NOT_REGISTER_LISTENERS, NOT_EXPECTING_ERROR_MESSAGE, doNotExpectModuleInstallationDirRename,
+                ensureNodeModulesCopiedFromExistingLocation);
+
+            function ensureNodeModulesCopiedFromExistingLocation()
+            {
+                // Checking "node_modules" directory has been copied from the resources dir.
+                exec('find ' + dynamicModuleInstallationPath + '/node_modules | wc -l', function(err, stdout, stderr)
+                {
+                    assert.equal(stdout, 5, "Not the same number of files than in the original node_modules dir.");
+                    ['', 'futures', 'futures/index.js', 'module2', 'module2/index.js'].forEach(function(file)
+                    {
+                        assert.isTrue(fs.existsSync(path.join(dynamicModuleInstallationPath, 'node_modules', file)), file + ' is missing');
+                    });
+                    done();
+                });
+            }
+        })
 
         it('should call clean up script when overriden', function(done)
         {
