@@ -84,30 +84,30 @@ How To Use
 ----------
 
 OK, enough blabbing.  Here's how you create and configure a DynamicModuleLoader:
-
+```javascript
     // Require all of the needful.
     var LockManager = require('hurt-locker').LockManager;
     var DynamicModuleLoader = require('dynamic-module-loader').DynamicModuleLoader;
 
+    // Create our config by overriding some default parameters
+    // All configurable parameters and their default values can be seen in [dml_config.js](lib/dml_config.js)
+    var dmlConfig = {
+        // Set the download directory.  Default is ./downloads
+        downloadDir: path.normalize("/some/accessible/location/downloads"),
+        // Set the installed modules directory.  Default is ./installed-modules
+        moduleInstallationDir: path.normalize("/somewhere/else/accessible/installed-modules"),
+        // Configure the package web sever URL.  URL can be anything.  Default is http://localhost.
+        modulePackageServerUrl: "http://gattacus",
+        // Provide the loader with a lock manager.  If you don't do this it will create its own lock manager and use
+        // ./locks as the lock directory.
+        lockManager: new LockManager({ lockDir: path.normalize("/another/accessible/location/for/lock/files") })
+    }
     // Create our loader.
-    var dynamicModuleLoader = new DynamicModuleLoader();
+    var dynamicModuleLoader = new DynamicModuleLoader(dmlConfig);
 
-    // Configure the directories needed by the module loader.  These methods also have accessors (getXXDir()).
-
-    // Set the download directory.  Default is ./downloads
-    dynamicModuleLoader.setDownloadDir(path.normalize("/some/accessible/location/downloads"));
-
-    // Set the installed modules directory.  Default is ./installed-modules
-    dynamicModuleLoader.setModuleInstallationDir(path.normalize("/somewhere/else/accessible/installed-modules"));
-
-    // Configure the package web sever URL.  URL can be anything.  Default is http://localhost.
-    dynamicModuleLoader.setModulePackageServerUrl("http://gattacus");
-
-    // Provide the loader with a lock manager.  If you don't do this it will create its own lock manager and use
-    // ./locks as the lock directory.
-    var lockManager = new LockManager();
-    lockManager.setLockDir(path.normalize("/another/accessible/location/for/lock/files");
-    dynamicModuleLoader.setLockManager(lockManager);
+    // All configurations can also be changed aftewards by accessing the `settings` property
+    dynamicModuleLoader.settings.downloadDir = path.normalize("/some/other/location")
+```
 
 Now that it's been configured we can download and run some packages.  But not so fast big boy!  Hold your horses!  We need
 a package first.
@@ -163,8 +163,7 @@ Changing Defaults
 By default the _DynamicModuleLoader_ assumes you will be downloading packages in _tar.gz_ form.  You can change the
 default like this:
 
-    var dynamicModuleLoader = new DynamicModuleLoader();
-    dynamicModuleLoader.setDefaultRemoteServerPackageFileExtension('.zip');
+    var dynamicModuleLoader = new DynamicModuleLoader({ defaultRemoteServerPackageFileExtension: '.zip' });
 
     // Will assume a .zip extension when requesting the package from the web server.
     var moduleResult = dynamicModuleLoader.load('test-dynamic-module');
@@ -195,11 +194,11 @@ External Dependencies
 
 _DynamicModuleLoader_ depends on the existence of _npm_ and _unzip_ on the machine on which it is deployed.  You can
 specify the paths to these executables like this:
-
+```javascript
     var dynamicModuleLoader = new DynamicModuleLoader();
-    dynamicModuleLoader.setNpmExecutablePath('/wherever/npm/is/installed');
-    dynamicModuleLoader.setUnzipExecutablePath('/wherever/unzip/ins/installed');
-
+    dynamicModuleLoader.settings.npmExecutablePath = '/wherever/npm/is/installed';
+    dynamicModuleLoader.settings.unzipExecutablePath = '/wherever/unzip/ins/installed';
+```
 By default, _DynamicModuleLoader_ assumes that _npm_ and _unzip_ paths are _/usr/local/bin/npm_ and _usr/bin/unzip_
 respectively.
 
@@ -212,7 +211,6 @@ You can customize the NPM options.  For example, you can set NPM to perform a ve
     var dynamicModuleLoader = new DynamicModuleLoader({
         npmOptions: ['--production', '--verbose']
     });
-    dynamicModuleLoader.setNpmInstallVerbose(true);
 
 
 Skipping Installation
@@ -220,15 +218,15 @@ Skipping Installation
 
 You can configure the dynamic downloader such that it doesn't execute the 'npm install' phase.  In this configuration,
 the downloader assumes that modules have been pre-installed and that executing npm is not necessary.  The loader still
-fires the same events in this configuration but you need not specify the location of NPM.  Here's how to skip the
+fires the same events in this configuration but you don't need to specify the location of NPM.  Here's how to skip the
 installation process:
-
-    dynamicModuleLoader.setNpmSkipInstall(true);
-
+```javascript
+    dynamicModuleLoader.settings.npmSkipInstall = true;
+```
 You can get the configuration settings like this:
-
-    dynamicModuleLoader.getNpmSkipInstall();
-
+```javascript
+    dynamicModuleLoader.settings.npmSkipInstall;
+```
 By default, NPM install is turned <b>on</b>, meaning that the "NPMSkipInstall" property is false.
 
 Using pre-installed dependencies
@@ -382,6 +380,13 @@ By default, the _DynamicModuleLoader_ will create a new Winston instance, but yo
 This will permit you to use for example the same winston instance than your app is already using, or even to use
 an other logger than winston. The only constrain is that the object you pass in paramater has the
 `info()`, `debug()` and `error()` functions defined.
+
+The same logger can also be shared with the LockManager:
+```javascript
+  var logger = require('winston');
+  var dmlConfig = { lockManager: new LockManager(undefined, winston) }
+  var dynamicModuleLoader = new DynamicModuleLoader(dmlConfig, winston);
+```
 
 
 All Properties and Defaults
