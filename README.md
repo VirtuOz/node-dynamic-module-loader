@@ -22,15 +22,16 @@ The Javascript files in the package may live anywhere, in any directory.  You ne
 The rule is that you should follow the same rules for a dynamic module as you would for a Node.js library module.
 
 The package.json file must contain the following:
-
+```javascript
     {
-        "main":"<path to main module"
+        "main":"<path to main module>"
     }
+```
 
 If you use other Node.js libraries, you must include the standard NPM dependencies blocks.  The actual libraries shown
 below are for illustrative purposes only; you can put whatever you want in the dependencies section, as long as they
 can be accessed by the runtime server when NPM installs the package:
-
+```javascript
     {
         "main":"./index.js",
 
@@ -47,6 +48,7 @@ can be accessed by the runtime server when NPM installs the package:
             .
         }
     }
+```
 
 
 The Web Server
@@ -116,7 +118,7 @@ Let's say we have a package that consists of just two files: the _package.json_ 
 it interesting, the package uses Futures.  Here are the files in the package:
 
 *package.json*
-
+```javascript
     {
         "name":"test-dynamic-module",
         "version":"0.0.1",
@@ -125,9 +127,10 @@ it interesting, the package uses Futures.  Here are the files in the package:
             "futures":"2.1.0"
         }
     }
+```
 
 *index.js*
-
+```javascript
     var Future = require('futures').future;
 
     module.exports.helloWorld = function()
@@ -140,9 +143,10 @@ it interesting, the package uses Futures.  Here are the files in the package:
 
         return future;
     };
+```
 
 We can call the _helloWorld_ function like this:
-
+```javascript
     var moduleResult = dynamicModuleLoader.load('test-dynamic-module');
     moduleResult.when(function(err, module)
                 {
@@ -156,13 +160,14 @@ We can call the _helloWorld_ function like this:
                     // Do something with the module.
                     console.log(module.helloWorld());
                 });
+```
 
 Changing Defaults
 -----------------
 
 By default the _DynamicModuleLoader_ assumes you will be downloading packages in _tar.gz_ form.  You can change the
 default like this:
-
+```javascript
     var dynamicModuleLoader = new DynamicModuleLoader({ defaultRemoteServerPackageFileExtension: '.zip' });
 
     // Will assume a .zip extension when requesting the package from the web server.
@@ -170,9 +175,10 @@ default like this:
     .
     .
     .
+```
 
 You can always override the default by specifying the extension when calling _load_:
-
+```javascript
     // By default assume .tar.gz.
     var dynamicModuleLoader = new DynamicModuleLoader();
 
@@ -187,6 +193,13 @@ You can always override the default by specifying the extension when calling _lo
     .
     .
     .
+```
+
+And you can regroup the installed modules in subdirectories of `moduleInstallationDir`:
+```javascript
+    // The module will be installed at moduleInstallationDir/demo_modules/
+    var moduleResult = dynamicModuleLoader.load('test-dynamic-module', undefined, undefined, 'demo_modules');
+```
 
 
 External Dependencies
@@ -207,10 +220,11 @@ Customizing NPM Options
 -----------------------
 
 You can customize the NPM options.  For example, you can set NPM to perform a verbose install:
-
+```javascript
     var dynamicModuleLoader = new DynamicModuleLoader({
         npmOptions: ['--production', '--verbose']
     });
+```
 
 
 Skipping Installation
@@ -247,31 +261,11 @@ the pre-installed `node_modules/` directory will be copied.
 ```
 
 
-Sharing node_modules between modules
-------------------------------------
-
-If you plan to load a lot of modules containing often the same dependencies (e.g. deploying regularly new versions
-of a module), you can have the dynamic module loader sharing the node_modules instead of reinstalling them each time,
-in order to speed up the installation. To do that, load your module with the following arguments:
-```javascript
-    var dynamicModuleLoader = new DynamicModuleLoader();
-    var moduleResult = dynamicModuleLoader.load('test-dynamic-module', undefined, undefined, nodeModulesInstallDirName);
-```
-Instead of installing your module in `moduleInstallationDir/moduleName`, this will create an extra directory and your module
-will be installed in `moduleInstallationDir/nodeModulesInstallDirName/moduleName`. Then, it will copy the package.json of your
-module in `moduleInstallationDir/nodeModulesInstallDirName`, do the `npm install` there, and copy back the `node_modules/` in
-the `moduleName` directory.
-
-Next time you install a module in the same `nodeModulesInstallDirName`, if the `package.json` file is the same, it will skip
-the `npm install` and directly copy the `node_modules/` in your newly installed module directory.
-If the dependencies have changed, it runs again `npm install` before copying the `node_modules/`.
-
-
 Events
 ------
 
 _DynamicModuleLoader_ is an event emitter.  Here's how to listen for the events it fires:
-
+```javascript
     var dynamicModuleLoader = new DynamicModuleLoader();
     dynamicModuleLoader.on(dynamicModuleLoader.events.moduleDownloaded, function(moduleName, downloadedFile, next)
     {
@@ -316,6 +310,7 @@ _DynamicModuleLoader_ is an event emitter.  Here's how to listen for the events 
 
         // moduleName - The name of the module loaded.
     });
+```
 
 Next Function
 -------------
