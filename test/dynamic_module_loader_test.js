@@ -25,22 +25,18 @@ require('longjohn');
 
 var expect = require('chai').expect;
 var assert = require('chai').assert;
-var fs = require('fs');
+var fs = require('fs-extra');
 var util = require('util');
-var wrench = require('wrench');
 var nock = require('nock');
-var zlib = require('zlib');
 var tar = require('tar');
-var fstream = require('fstream');
 var path = require('path');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
-var extend = require('xtend');
 var Future = require('futures').future;
 
 
 var DynamicModuleLoader = require('../index').DynamicModuleLoader;
-var dmlConfig = require('../index').config;
+var dmlConfig = require('../index').config.createDefaultConfig();
 var _ = require('underscore');
 _.str = require('underscore.string');
 
@@ -48,7 +44,7 @@ var LockManager = require('hurt-locker').LockManager;
 
 describe('DynamicModuleLoaderTest', function ()
 {
-    var rootDir = path.join(__dirname, "/../../");
+    var rootDir = path.join(__dirname, "/../");
     var tmpDir = path.join(rootDir, 'target/DynamicModuleLoaderTest-tmp');
 
     var dynamicModuleName = 'test-dynamic-module';
@@ -74,7 +70,7 @@ describe('DynamicModuleLoaderTest', function ()
                    // Get rid of the temp directory before we start the test.
                    if (fs.existsSync(tmpDir))
                    {
-                       wrench.rmdirSyncRecursive(tmpDir, true);
+                       fs.removeSync(tmpDir);
                    }
 
                    lockManager = new LockManager({lockDir: path.join(tmpDir, "/locks")});
@@ -94,17 +90,17 @@ describe('DynamicModuleLoaderTest', function ()
                    // Create the module loader to be tested.
                    dynamicModuleLoader = new DynamicModuleLoader(config);
 
-                   wrench.mkdirSyncRecursive(tmpDir);
+                   fs.mkdirsSync(tmpDir);
 
                    // In preparation for our test, we tar and compress up the test dynamic module.
-                   fstream.Reader({path: dynamicModuleResourceDir, type: "Directory"})
-                       .pipe(tar.Pack())
-                       .pipe(zlib.createGzip())
-                       .pipe(fstream.Writer(dynamicModuleTarGzipFilePath).on('close', function (err)
+                   tar.create(
                        {
-                           expect(err).to.equal(undefined);
-                           zipTestModule();
-                       }));
+                           gzip: true,
+                           file: dynamicModuleTarGzipFilePath,
+                           C: resourceDir
+                       },
+                       [dynamicModuleName]
+                   ).then(() => zipTestModule());
 
                    // We also zip the test module.
                    // NOTE 2012/09/24 KTD: We have to spawn the zip program because the zip support in Node is
@@ -124,7 +120,7 @@ describe('DynamicModuleLoaderTest', function ()
                    {
                        // Using this form of child process execution because spawn doesn't work for wildcards when
                        // calling zip.  The zip process exits with code "12", saying that it has nothing to do.
-                       exec("zip " + params, {cwd: resourceDir}, function (error, stdout, stderr)
+                       exec(dmlConfig.zipExecutablePath + " " + params, {cwd: resourceDir}, function (error, stdout, stderr)
                        {
                            if (error)
                            {
@@ -149,7 +145,7 @@ describe('DynamicModuleLoaderTest', function ()
 
             // The DML adds the lock manager to its settings, so we add it to the default values we create before
             // asserting equality.
-            var expectedSettings = extend(dmlConfig.createDefaultConfig(), {lockManager: lm.settings.lockManager});
+            var expectedSettings = Object.assign(dmlConfig, {lockManager: lm.settings.lockManager});
             assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
         });
@@ -158,7 +154,7 @@ describe('DynamicModuleLoaderTest', function ()
         {
             var settings = {wibble: 'drumsticks', downloadDir: 'giblets', lockManager: new LockManager()};
             var lm = new DynamicModuleLoader(settings);
-            var expectedSettings = extend(lm.settings, settings);
+            var expectedSettings = Object.assign(lm.settings, settings);
             assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
         });
@@ -171,7 +167,7 @@ describe('DynamicModuleLoaderTest', function ()
                                              {
                                                  return settings;
                                              });
-            var expectedSettings = extend(lm.settings, settings);
+            var expectedSettings = Object.assign(lm.settings, settings);
             assert.equal(JSON.stringify(lm.settings), JSON.stringify(expectedSettings), "settings");
             done();
         });
@@ -204,7 +200,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should get an error because of unknown host', function (done)
         {
             var targetFile = tmpDir + "/file.tar.gz";
-            var sourceUrl = "http://unknown-host/not-found.tar.gz";
+            var sourceUrl = "http://really-unknown-host/not-found.tar.gz";
             var result = dynamicModuleLoader.__downloadFile(sourceUrl, targetFile);
             result.when(function (err, filePath)
                         {
@@ -253,52 +249,6 @@ describe('DynamicModuleLoaderTest', function ()
                             expect(fs.existsSync(targetFile), 'target file existence').to.equal(true);
 
                             scope.done();
-                            done();
-                        });
-        });
-    });
-
-
-    describe('__decompressTarFile', function ()
-    {
-        it('should decompress the tar file', function (done)
-        {
-            var targetFilePath = tmpDir + "/uncompressed.tar";
-            var result = dynamicModuleLoader.__decompressTarFile(dynamicModuleTarGzipFilePath, targetFilePath);
-            result.when(function (err, decompressedFilePath)
-                        {
-                            expect(err).to.equal(undefined);
-                            expect(decompressedFilePath).to.equal(targetFilePath);
-                            expect(fs.existsSync(targetFilePath), 'target file existence').to.equal(true);
-
-                            done();
-                        });
-        });
-
-        it('should fail to find the source tar file', function (done)
-        {
-            var targetFilePath = tmpDir + "/uncompressed.tar";
-            var result = dynamicModuleLoader.__decompressTarFile("does-not-exist.tar.gz", targetFilePath);
-            result.when(function (err, decompressedFilePath)
-                        {
-                            expect(err).to.not.equal(undefined);
-                            expect(decompressedFilePath).to.equal(undefined);
-                            expect(fs.existsSync(targetFilePath), 'target file existence').to.equal(false);
-
-                            done();
-                        });
-        });
-
-        it('should fail to write the target file', function (done)
-        {
-            var targetFilePath = tmpDir + "/some-non-existent-dir/should-not-work.tar";
-            var result = dynamicModuleLoader.__decompressTarFile(dynamicModuleTarGzipFilePath, targetFilePath);
-            result.when(function (err, decompressedFilePath)
-                        {
-                            expect(err).to.not.equal(undefined);
-                            expect(decompressedFilePath).to.equal(undefined);
-                            expect(fs.existsSync(targetFilePath), 'target file existence').to.equal(false);
-
                             done();
                         });
         });
@@ -371,13 +321,13 @@ describe('DynamicModuleLoaderTest', function ()
         it('should return the first package.json file found', function (done)
         {
             var targetDir = path.join(tmpDir, 'resources');
-            wrench.copyDirSyncRecursive(resourceDir, targetDir);
+            fs.copySync(resourceDir, targetDir);
             fs.writeFileSync(path.join(targetDir, 'test-dynamic-module/lib/package.json'), 'wibble', 'UTF-8');
 
             // Make sure we also have two package.json files with path names that are the same length, just to test
             // that it doesn't break anything.
             var bilDir = path.join(targetDir, 'test-dynamic-module/bil');
-            wrench.mkdirSyncRecursive(bilDir);
+            fs.mkdirsSync(bilDir);
             fs.writeFileSync(path.join(bilDir, 'package.json'), 'elbbiw', 'UTF-8');
 
             dynamicModuleLoader.__findPackageJSONFile(targetDir)
@@ -390,7 +340,7 @@ describe('DynamicModuleLoaderTest', function ()
         it('should not find anything and return an error', function (done)
         {
             var targetDir = path.join(tmpDir, 'resources');
-            wrench.copyDirSyncRecursive(resourceDir, targetDir);
+            fs.copySync(resourceDir, targetDir);
             fs.unlinkSync(path.join(targetDir, 'test-dynamic-module/package.json'));
 
             dynamicModuleLoader.__findPackageJSONFile(targetDir)
@@ -788,7 +738,7 @@ describe('DynamicModuleLoaderTest', function ()
                             // Check that in this dir, we have: the module dir, the package.json and the node_modules
                             var sharedDirPath = path.join(dynamicModuleLoader.settings.moduleInstallationDir, 'shared_dir');
                             var fileNames = fs.readdirSync(sharedDirPath);
-                            expect(fileNames.length, 'number of files in the shared module installation dir').to.equal(3);
+                            expect(fileNames.length, 'number of files in the shared module installation dir').to.equal(4);
                             expect(fileNames.indexOf(dynamicModuleName) > -1 && fileNames.indexOf('package.json') > -1 &&
                                 fileNames.indexOf('node_modules') > -1, 'shared dir contains module, package.json and node_modules ').to.equal(true);
 
@@ -800,8 +750,8 @@ describe('DynamicModuleLoaderTest', function ()
                                           var copiedPackageJson = fs.readFileSync(path.join(sharedDirPath, 'package.json'), 'utf8');
                                           expect(copiedPackageJson, 'package.json has been copied').to.equal(packageJsonOrig);
                                           // Check that the 2 node_modules dir contain the same files.
-                                          var sharedNodeModulesFiles = wrench.readdirSyncRecursive(path.join(sharedDirPath, 'node_modules'));
-                                          var copiedNodeModulesFiles = wrench.readdirSyncRecursive(path.join(path.dirname(packageJSONFilePath), 'node_modules'));
+                                          var sharedNodeModulesFiles = fs.readdirSync(path.join(sharedDirPath, 'node_modules'));
+                                          var copiedNodeModulesFiles = fs.readdirSync(path.join(path.dirname(packageJSONFilePath), 'node_modules'));
                                           expect(copiedNodeModulesFiles, 'node_modules dir has been copied').to.deep.equal(sharedNodeModulesFiles);
                                           
                                           tryToRunModule(module);

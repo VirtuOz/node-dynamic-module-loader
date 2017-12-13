@@ -17,7 +17,6 @@ describe('DynamicModuleLoaderConfigTest', function ()
         {
             var config = dmlConfig.createDefaultConfig();
 
-            assert.equal(config.npmExecutablePath, '/usr/local/bin/npm', 'npmExecutablePath');
             assert.deepEqual(config.npmOptions, ['--production'], 'npmOptions');
             assert.equal(config.downloadDir, path.normalize('./downloads'), 'downloadDir');
             assert.equal(config.moduleInstallationDir, path.normalize('./installed-modules'), 'moduleInstallationDir');
