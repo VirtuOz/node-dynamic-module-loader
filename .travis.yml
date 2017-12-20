@@ -2,4 +2,4 @@ before_script:
   - export NPM_PATH=`which npm`
 language: node_js
 node_js:
-    - "0.10"
+    - "lts/carbon"

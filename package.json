@@ -25,7 +25,7 @@
         "node": ">=6"
     },
     "scripts": {
-        "test": "node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter spec",
+        "test": "NPM_PATH=`which npm` node_modules/mocha/bin/_mocha test/*_test.js --ignore-leaks -t 20000 --reporter spec",
         "test-coverage": "scripts/runTestWithCoverage.sh",
         "clean": "rm -rf target"
     },
@@ -39,7 +39,7 @@
         "jsclass": "4.0.5",
         "tar": "^4.1.1",
         "winston": "2.4.0",
-        "fs-extra": "^5.0.0",
+        "fs-extra": "5.0.0",
         "rimraf": "2.6.2"
     },
     "devDependencies": {
